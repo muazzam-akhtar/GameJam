@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(Rigidbody))]
 public class P1Controller : MonoBehaviour
@@ -11,6 +12,7 @@ public class P1Controller : MonoBehaviour
     public float maxDistance = 20f;
     public LayerMask targetLayers;
     [SerializeField] private bool    canSlap;
+    [SerializeField] private Image _slapIcon;
 
     private void Awake()
     {
@@ -65,6 +67,7 @@ public class P1Controller : MonoBehaviour
     {
         yield return new WaitForSeconds(4.0f);
         canSlap = true;
+        SetAlpha(1.0f);
     }
 
     void    SlapEvent()
@@ -81,8 +84,18 @@ public class P1Controller : MonoBehaviour
             {
                 Debug.Log($"Hit {hit.collider.gameObject.name} at distance {hit.distance}");
                 canSlap = false;
+                SetAlpha(0.5f);
                 StartCoroutine(ResetSlapCooldown());
             }
         }
+    }
+
+    private void SetAlpha(float alphaValue)
+    {
+        Color currentColor = _slapIcon.color;
+        Debug.Log("Color Before: " + _slapIcon.color);
+        currentColor.a = alphaValue;
+        _slapIcon.color = currentColor;
+        Debug.Log("Color Before: " + _slapIcon.color);
     }
 }
