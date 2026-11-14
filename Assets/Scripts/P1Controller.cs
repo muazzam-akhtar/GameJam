@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using System.Collections;
 
 [RequireComponent(typeof(Rigidbody))]
@@ -11,6 +12,8 @@ public class P1Controller : MonoBehaviour
     public float maxDistance = 20f;
     public LayerMask targetLayers;
     [SerializeField] private bool    canSlap;
+    [Tooltip("Slap button. P1 = Left Shift (next to WASD).")]
+    [SerializeField] private Key     slapKey = Key.LeftShift;
 
     private void Awake()
     {
@@ -25,7 +28,11 @@ public class P1Controller : MonoBehaviour
         float   moveZ = Input.GetAxisRaw("P1_Vertical");
 
         movementInput = new Vector2(moveX, moveZ);
-        SlapEvent();
+
+        // slap only when the slap button is pressed (no more automatic slapping)
+        var keyboard = Keyboard.current;
+        if (keyboard != null && slapKey != Key.None && keyboard[slapKey].wasPressedThisFrame)
+            SlapEvent();
     }
 
     private void FixedUpdate()
@@ -69,19 +76,26 @@ public class P1Controller : MonoBehaviour
 
     void    SlapEvent()
     {
+        if (!canSlap) return;
+        // the slapper always swings; it only lands if the other player is in front and in range
+        if (TryGetComponent<ICharacterActions>(out var me)) me.Slap();
+
         Vector3 origin = transform.position;
         Vector3 direction = transform.forward;
         origin.y += 20.0f;
 
         Debug.DrawRay(origin, direction * maxDistance, Color.red);
 
-        if (canSlap && Physics.Raycast(origin, direction, out RaycastHit hit, maxDistance, targetLayers))
+        if (Physics.Raycast(origin, direction, out RaycastHit hit, maxDistance, targetLayers))
         {
             if (hit.collider.gameObject.name == "Evil")
             {
                 Debug.Log($"Hit {hit.collider.gameObject.name} at distance {hit.distance}");
                 canSlap = false;
                 StartCoroutine(ResetSlapCooldown());
+                // the one who got hit flinches and sees stars
+                var victim = hit.collider.GetComponentInParent<ICharacterActions>();
+                if (victim != null) victim.Stung();
             }
         }
     }
