@@ -18,7 +18,6 @@ public class P2Controller : MonoBehaviour
         float   moveZ = Input.GetAxisRaw("P2_Vertical");
 
         movementInput = new Vector2(moveX, moveZ);
-        Debug.Log(movementInput);
     }
 
     private void FixedUpdate()
