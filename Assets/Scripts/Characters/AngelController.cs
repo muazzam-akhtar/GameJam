@@ -42,5 +42,7 @@ public class AngelController : MonoBehaviour
     {
         if (IsStunging) return;
         Anim.SetTrigger(StungTrigger);
+        var glow = GetComponent<AngelGlow>();
+        if (glow) glow.Flare();
     }
 }
