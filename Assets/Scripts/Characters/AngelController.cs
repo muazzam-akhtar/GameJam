@@ -1,67 +1,46 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 /// <summary>
-/// Controls the Angel's animations.
-/// F toggles flying on/off, Space slaps (works while resting or flying).
-/// Call <see cref="SetFlying"/>, <see cref="ToggleFlying"/> or <see cref="Slap"/> from other scripts or UI events.
+/// Angel.
+///   Idle   flying loop (always playing)
+///   Stung  Space - the stung/slap move, then back to Idle
+/// Game code can call <see cref="Stung"/>.
 /// </summary>
 [RequireComponent(typeof(Animator))]
 public class AngelController : MonoBehaviour
 {
     [Header("Keys")]
-    [SerializeField] Key flyKey = Key.F;
-    [SerializeField] Key slapKey = Key.Space;
+    [FormerlySerializedAs("slapKey")]
+    [SerializeField] Key stungKey = Key.Space;
 
-    [Header("Start")]
-    [Tooltip("Start the scene already flying instead of resting.")]
-    [SerializeField] bool startFlying;
-
-    static readonly int FlyingParam = Animator.StringToHash("Flying");
-    static readonly int SlapParam = Animator.StringToHash("Slap");
-    static readonly int SlapState = Animator.StringToHash("Slap");
+    static readonly int StungTrigger = Animator.StringToHash("Stung");
+    static readonly int StungState = Animator.StringToHash("Stung");
 
     Animator animator;
+    Animator Anim => animator != null ? animator : animator = GetComponent<Animator>();
 
-    public bool IsFlying { get; private set; }
-
-    public bool IsSlapping
+    public bool IsStunging
     {
         get
         {
-            var current = animator.GetCurrentAnimatorStateInfo(0);
-            var next = animator.GetNextAnimatorStateInfo(0);
-            return current.shortNameHash == SlapState || next.shortNameHash == SlapState;
+            var current = Anim.GetCurrentAnimatorStateInfo(0);
+            var next = Anim.GetNextAnimatorStateInfo(0);
+            return current.shortNameHash == StungState || next.shortNameHash == StungState;
         }
-    }
-
-    void Awake()
-    {
-        animator = GetComponent<Animator>();
-        SetFlying(startFlying);
     }
 
     void Update()
     {
         var keyboard = Keyboard.current;
-        if (keyboard == null) return;
-
-        if (keyboard[flyKey].wasPressedThisFrame) ToggleFlying();
-        if (keyboard[slapKey].wasPressedThisFrame) Slap();
+        if (keyboard != null && keyboard[stungKey].wasPressedThisFrame) Stung();
     }
 
-    public void ToggleFlying() => SetFlying(!IsFlying);
-
-    public void SetFlying(bool flying)
+    /// <summary>Plays the stung move once; ignored while it is already playing.</summary>
+    public void Stung()
     {
-        IsFlying = flying;
-        animator.SetBool(FlyingParam, flying);
-    }
-
-    /// <summary>Plays the slap once; ignored while a slap is already playing.</summary>
-    public void Slap()
-    {
-        if (IsSlapping) return;
-        animator.SetTrigger(SlapParam);
+        if (IsStunging) return;
+        Anim.SetTrigger(StungTrigger);
     }
 }
