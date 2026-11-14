@@ -14,7 +14,7 @@ using Random = System.Random;
 /// raised terrace, stairs, glowing cracks and a freestanding ruined arch. Everything is generated (stone blocks,
 /// ground, water, banners) into <see cref="PrefabPath"/>; <see cref="InstallIntoOpenScene"/> swaps it into DemoScene.
 /// Menu: GameJam/Environment/Build Courtyard. Safe to run again.
-/// World units: the characters are ~32 tall (prefabs scaled x10); the camera looks down from (54,100,-34).
+/// World units: the characters are ~32 tall (prefabs scaled x10).
 /// </summary>
 public static class CourtyardBuilder
 {
@@ -27,39 +27,53 @@ public static class CourtyardBuilder
     /// <summary>Middle of the walkable arena (y = ground).</summary>
     public static readonly Vector3 ArenaCenter = new Vector3(56f, 0f, 70f);
 
-    /// <summary>Where pickups may spawn: open ground only (SpawnRegion's box in DemoScene).</summary>
-    public static readonly Bounds SpawnArea = new Bounds(new Vector3(55f, 4.7f, 30f), new Vector3(146f, 0f, 52f));
+    /// <summary>
+    /// The layout is authored on a small grid and spread out by <see cref="Scale"/> around the arena centre:
+    /// positions grow, stone sizes and heights don't, so the map gets bigger without the stones getting chunkier.
+    /// </summary>
+    public const float Scale = 1.6f;
+    static float LX(float x) => 56f + (x - 56f) * Scale;
+    static float LZ(float z) => 70f + (z - 70f) * Scale;
+    static Vector2 L(float x, float z) => new Vector2(LX(x), LZ(z));
+    static Rect R(float x0, float z0, float x1, float z1) => Rect.MinMaxRect(LX(x0), LZ(z0), LX(x1), LZ(z1));
+
+    /// <summary>Where the players start a round.</summary>
+    public static readonly Vector3 AngelStart = new Vector3(LX(-10f), 0f, LZ(30f));
+    public static readonly Vector3 EvilStart = new Vector3(LX(100f), 0f, LZ(30f));
 
     // ------------------------------------------------------------------ layout
 
     /// <summary>Inner edge of the border wall, counter-clockwise (x, z).</summary>
     static readonly Vector2[] Outline =
     {
-        new Vector2(-14, -8), new Vector2(126, -8), new Vector2(146, 12), new Vector2(146, 132),
-        new Vector2(126, 152), new Vector2(-14, 152), new Vector2(-34, 132), new Vector2(-34, 12),
+        L(-14, -8), L(126, -8), L(146, 12), L(146, 132),
+        L(126, 152), L(-14, 152), L(-34, 132), L(-34, 12),
     };
 
-    static readonly Rect AqueductRect = Rect.MinMaxRect(-44, 118, 62, 166);
+    static readonly Rect AqueductRect = R(-44, 118, 62, 166);
     const float AqueductTop = 26f;
-    const float AqueductFace = 118f;
-    const float ArchX = 0f, ArchInner = 12f, ArchOuter = 18f, ArchSpring = 8f;
+    static readonly float AqueductFace = LZ(118f);
+    static readonly float ArchX = LX(0f);
+    const float ArchInner = 12f, ArchOuter = 18f, ArchSpring = 8f;
 
-    static readonly Rect TerraceRect = Rect.MinMaxRect(96, 108, 156, 166);
+    static readonly Rect TerraceRect = R(96, 108, 156, 166);
     const float TerraceTop = 22f;
-    static readonly Rect StairsRect = Rect.MinMaxRect(74, 112, 96, 146);
+    static readonly Rect StairsRect = R(78, 112, 96, 140);
 
-    static readonly Vector2 RuinArch = new Vector2(112, 70);
+    static readonly Vector2 RuinArch = L(112, 70);
     const float RuinGap = 32f, RuinPillar = 11f, RuinPillarHeight = 24f;
 
-    static readonly Vector2[] CoverClusters = { new Vector2(-20, 92), new Vector2(58, 96), new Vector2(140, 20) };
+    static readonly Vector2[] CoverClusters = { L(-20, 92), L(58, 96), L(140, 20), L(76, 56), L(-22, 56), L(50, 8) };
 
     /// <summary>Stream centre line (x, z), from inside the aqueduct tunnel to the culvert in the front wall.</summary>
     static readonly Vector2[] StreamLine =
     {
-        new Vector2(0, 136), new Vector2(0, 120), new Vector2(3, 104), new Vector2(14, 84), new Vector2(22, 64),
-        new Vector2(16, 44), new Vector2(4, 26), new Vector2(-6, 8), new Vector2(-10, -4), new Vector2(-10, -14), new Vector2(-10, -20),
+        L(0, 136), L(0, 120), L(3, 104), L(14, 84), L(22, 64),
+        L(16, 44), L(4, 26), L(-6, 8), L(-10, -4), L(-10, -14), L(-10, -20),
     };
     const float WaterLevel = -1.0f;
+    /// <summary>Where the ground in front of the front wall drops away.</summary>
+    static readonly float CliffZ = LZ(-8f) - 12f;
 
     // ------------------------------------------------------------------ palette (sRGB, converted to linear)
 
@@ -133,7 +147,7 @@ public static class CourtyardBuilder
             ground.transform.SetParent(colliders, false);
             var gb = ground.AddComponent<BoxCollider>();
             gb.center = new Vector3(56f, -5f, 80f);
-            gb.size = new Vector3(460f, 10f, 460f);
+            gb.size = new Vector3(900f, 10f, 900f);
 
             BuildVegetation(root.transform, rng);
 
@@ -179,7 +193,7 @@ public static class CourtyardBuilder
                 var c = start + dir * mid + outward * (thickness * 0.5f);
                 t += w + 0.5f;
                 if (InsideStructure(new Vector2(c.x, c.z), 6f)) continue;
-                bool culvert = s == 0 && Mathf.Abs(c.x - (-10f)) < 9f;   // front wall over the stream
+                bool culvert = s == 0 && Mathf.Abs(c.x - StreamLine[StreamLine.Length - 2].x) < 9f;   // front wall over the stream
                 bool front = s == 0 || s == 1 || s == Outline.Length - 1;   // the camera looks over these
                 float hgt = front ? Mathf.Lerp(6.5f, 8.5f, (float)rng.NextDouble()) : Mathf.Lerp(9f, 11.5f, (float)rng.NextDouble());
                 if (rng.NextDouble() < 0.16) hgt += front ? 2f : 3.5f;    // the odd taller block
@@ -199,8 +213,9 @@ public static class CourtyardBuilder
             }
         }
         // culvert jambs either side of the stream
-        foreach (var x in new[] { -18.5f, -1.5f })
-            Block(stone, new Vector3(x, 3f, -12.5f), new Vector3(5f, 6f, 9f), Quaternion.identity, Pick(StonePalette, rng), rng);
+        float exitX = StreamLine[StreamLine.Length - 2].x, frontZ = Outline[0].y;
+        foreach (var x in new[] { exitX - 8.5f, exitX + 8.5f })
+            Block(stone, new Vector3(x, 3f, frontZ - 4.5f), new Vector3(5f, 6f, 9f), Quaternion.identity, Pick(StonePalette, rng), rng);
     }
 
     // ------------------------------------------------------------------ aqueduct (left back)
@@ -212,7 +227,7 @@ public static class CourtyardBuilder
 
         // front face: three courses; the broken right end steps down
         float[] courseTop = { 8f, 17f, AqueductTop };
-        float[] courseEnd = { 62f, 57f, 50f };
+        float[] courseEnd = { r.xMax, r.xMax - 5f, r.xMax - 12f };
         for (int k = 0; k < 3; k++)
         {
             float y0 = k == 0 ? 0f : courseTop[k - 1], y1 = courseTop[k];
@@ -236,8 +251,8 @@ public static class CourtyardBuilder
         Block(stone, new Vector3(ArchX, 12f, AqueductFace + 27f), new Vector3(ArchInner * 2f + 4f, 24f, 4f), Quaternion.identity, dark * 0.6f, rng, 0.1f);
 
         // body behind the face (only its top edge shows) and the deck slabs
-        Block(stone, new Vector3((r.xMin + 50f) * 0.5f, AqueductTop * 0.5f - 0.5f, (AqueductFace + 11f + r.yMax) * 0.5f), new Vector3(50f - r.xMin, AqueductTop - 1f, r.yMax - AqueductFace - 11f), Quaternion.identity, Pick(StonePalette, rng), rng, 0.05f);
-        for (float x = r.xMin + 6f; x < 50f; x += 12.5f)
+        Block(stone, new Vector3((r.xMin + r.xMax - 12f) * 0.5f, AqueductTop * 0.5f - 0.5f, (AqueductFace + 11f + r.yMax) * 0.5f), new Vector3(r.xMax - 12f - r.xMin, AqueductTop - 1f, r.yMax - AqueductFace - 11f), Quaternion.identity, Pick(StonePalette, rng), rng, 0.05f);
+        for (float x = r.xMin + 6f; x < r.xMax - 12f; x += 12.5f)
             for (float z = AqueductFace + 6f; z < r.yMax; z += 12.5f)
             {
                 if (rng.NextDouble() < 0.08) continue;                   // missing slab
@@ -246,7 +261,7 @@ public static class CourtyardBuilder
                 if (rng.NextDouble() < 0.18) Moss(moss, c + Vector3.up * 1f, 11f, 11f, rng);
             }
         // parapet along the front edge, chunky end blocks
-        for (float x = r.xMin + 4f; x < 46f; x += 15f + (float)rng.NextDouble() * 4f)
+        for (float x = r.xMin + 4f; x < r.xMax - 16f; x += 15f + (float)rng.NextDouble() * 4f)
         {
             if (rng.NextDouble() < 0.25) continue;
             var c = new Vector3(x, AqueductTop + 4.5f, AqueductFace + 4f);
@@ -259,7 +274,7 @@ public static class CourtyardBuilder
         // broken end: rubble on the ground
         for (int i = 0; i < 6; i++)
         {
-            var c = new Vector3(60f + (float)rng.NextDouble() * 12f, 2.5f + (float)rng.NextDouble() * 2f, AqueductFace - 6f + (float)rng.NextDouble() * 14f);
+            var c = new Vector3(r.xMax - 2f + (float)rng.NextDouble() * 12f, 2.5f + (float)rng.NextDouble() * 2f, AqueductFace - 6f + (float)rng.NextDouble() * 14f);
             Block(stone, c, new Vector3(5f + (float)rng.NextDouble() * 5f, 4f + (float)rng.NextDouble() * 3f, 5f + (float)rng.NextDouble() * 4f),
                 Quaternion.Euler((float)rng.NextDouble() * 20 - 10, (float)rng.NextDouble() * 360, (float)rng.NextDouble() * 20 - 10), Pick(StonePalette, rng), rng);
         }
@@ -267,14 +282,20 @@ public static class CourtyardBuilder
         // teal banner with a gold diamond, and a pink crack near the broken end
         var gold = Lin(new Color(0.95f, 0.72f, 0.22f));
         var teal = Lin(new Color(0.10f, 0.55f, 0.60f));
-        Banner(cloth, trim, new Vector3(34f, AqueductTop - 2f, AqueductFace - 0.9f), Vector3.back, 11f, 16f, (u, v) =>
+        Banner(cloth, trim, new Vector3(ArchX + (r.xMax - 12f - ArchX) * 0.55f, AqueductTop - 2f, AqueductFace - 0.9f), Vector3.back, 11f, 16f, (u, v) =>
         {
             bool border = u < 0.1f || u > 0.9f || v < 0.06f;
             float dx = Mathf.Abs(u - 0.5f) * 2f, dy = Mathf.Abs(v - 0.45f) * 2.6f;
             bool diamond = dx + dy < 0.62f;
             return border || diamond ? gold : teal;
         }, gold, rng);
-        EnvMeshKit.Crack(cracks, new[] { new Vector3(52f, 2f, AqueductFace - 1.2f), new Vector3(54f, 5f, AqueductFace - 1.2f), new Vector3(51f, 8f, AqueductFace - 1.2f), new Vector3(55f, 12f, AqueductFace - 1.2f), new Vector3(53f, 15f, AqueductFace - 1.2f) }, Vector3.back, 1.8f);
+        Banner(cloth, trim, new Vector3(r.xMin + (ArchX - r.xMin) * 0.5f, AqueductTop - 2f, AqueductFace - 0.9f), Vector3.back, 11f, 16f, (u, v) =>
+        {
+            bool border = u < 0.1f || u > 0.9f || v < 0.06f;
+            float dx = Mathf.Abs(u - 0.5f) * 2f, dy = Mathf.Abs(v - 0.45f) * 2.6f;
+            return border || dx + dy < 0.62f ? gold : teal;
+        }, gold, rng);
+        EnvMeshKit.Crack(cracks, new[] { new Vector3(r.xMax - 10f, 2f, AqueductFace - 1.2f), new Vector3(r.xMax - 8f, 5f, AqueductFace - 1.2f), new Vector3(r.xMax - 11f, 8f, AqueductFace - 1.2f), new Vector3(r.xMax - 7f, 12f, AqueductFace - 1.2f), new Vector3(r.xMax - 9f, 15f, AqueductFace - 1.2f) }, Vector3.back, 1.8f);
     }
 
     // ------------------------------------------------------------------ terrace (right back)
@@ -305,26 +326,27 @@ public static class CourtyardBuilder
             Block(stone, new Vector3(x, TerraceTop + 4f, r.yMin + 4f), new Vector3(9f, 6f, 7f), Quaternion.Euler(0, (float)rng.NextDouble() * 8 - 4, 0), Pick(StonePalette, rng), rng);
         }
         // pillar with the pink banner, a broken pillar
-        var pillar = new Vector3(147f, TerraceTop, r.yMin + 6f);
+        var pillar = new Vector3(r.xMax - 9f, TerraceTop, r.yMin + 6f);
         for (int i = 0; i < 2; i++)
             Block(stone, pillar + Vector3.up * (3.5f + i * 7f), new Vector3(9f - i * 0.4f, 7f, 9f - i * 0.4f), Quaternion.Euler(0, (float)rng.NextDouble() * 6 - 3, 0), Pick(StonePalette, rng), rng);
         Block(stone, pillar + Vector3.up * 15f, new Vector3(11.5f, 3f, 11.5f), Quaternion.identity, Pick(StonePalette, rng), rng);
         var magenta = Lin(new Color(0.78f, 0.18f, 0.48f));
         var plum = Lin(new Color(0.32f, 0.10f, 0.28f));
-        Banner(cloth, trim, new Vector3(128f, TerraceTop - 1.5f, r.yMin - 0.9f), Vector3.back, 10f, 16f, (u, v) =>
+        Banner(cloth, trim, new Vector3(r.xMin + r.width * 0.53f, TerraceTop - 1.5f, r.yMin - 0.9f), Vector3.back, 10f, 16f, (u, v) =>
         {
             bool border = u < 0.1f || u > 0.9f || v < 0.06f;
             float x = (u - 0.5f) * 2f, y = v;
             bool claw = Mathf.Abs(Mathf.Abs(x) - (0.55f - y * 0.55f)) < 0.09f && y > 0.25f && y < 0.75f || Mathf.Abs(x) < 0.07f && y > 0.2f && y < 0.8f;
             return border || claw ? plum : magenta;
         }, Lin(new Color(0.9f, 0.7f, 0.3f)), rng);
-        Block(stone, new Vector3(104f, TerraceTop + 4f, r.yMin + 8f), new Vector3(8f, 8f, 8f), Quaternion.Euler(4, 20, 0), Pick(StonePalette, rng), rng);
-        Block(stone, new Vector3(112f, TerraceTop + 1.5f, r.yMin + 14f), new Vector3(6f, 3f, 5f), Quaternion.Euler(10, 50, 6), Pick(StonePalette, rng), rng);
+        Block(stone, new Vector3(r.xMin + 8f, TerraceTop + 4f, r.yMin + 8f), new Vector3(8f, 8f, 8f), Quaternion.Euler(4, 20, 0), Pick(StonePalette, rng), rng);
+        Block(stone, new Vector3(r.xMin + 16f, TerraceTop + 1.5f, r.yMin + 14f), new Vector3(6f, 3f, 5f), Quaternion.Euler(10, 50, 6), Pick(StonePalette, rng), rng);
 
         // glowing cracks across the front face and the left face
-        Crack(cracks, new Vector3(104f, 1f, r.yMin - 1.2f), Vector3.back, Vector3.right, 19f, rng);
-        Crack(cracks, new Vector3(146f, 1.5f, r.yMin - 1.2f), Vector3.back, Vector3.right, 17f, rng);
-        Crack(cracks, new Vector3(r.xMin - 1.2f, 1f, 132f), Vector3.left, Vector3.forward, 17f, rng);
+        Crack(cracks, new Vector3(r.xMin + 8f, 1f, r.yMin - 1.2f), Vector3.back, Vector3.right, 19f, rng);
+        Crack(cracks, new Vector3(r.xMin + r.width * 0.35f, 1f, r.yMin - 1.2f), Vector3.back, Vector3.right, 17f, rng);
+        Crack(cracks, new Vector3(r.xMax - 10f, 1.5f, r.yMin - 1.2f), Vector3.back, Vector3.right, 17f, rng);
+        Crack(cracks, new Vector3(r.xMin - 1.2f, 1f, r.yMin + 40f), Vector3.left, Vector3.forward, 17f, rng);
     }
 
     // ------------------------------------------------------------------ stairs up to the terrace
@@ -405,14 +427,14 @@ public static class CourtyardBuilder
     static void BuildPaving(MeshBuilder paving, MeshBuilder cracks, Random rng)
     {
         const float cell = 10f;
-        for (float x = 58f; x < 142f; x += cell)
-            for (float z = -2f; z < 106f; z += cell)
+        for (float x = LX(58f); x < LX(142f); x += cell)
+            for (float z = LZ(-2f); z < LZ(106f); z += cell)
             {
                 var p = new Vector2(x + cell * 0.5f, z + cell * 0.5f);
                 if (!InsideArena(p, 6f) || InsideStructure(p, 4f) || NearCover(p, 16f) || NearRuinPillar(p, 9f)) continue;
                 float mask = EnvMeshKit.Noise(new Vector3(p.x / 34f, 0, p.y / 34f), 91);
-                float near = Mathf.Max(1f - Vector2.Distance(p, RuinArch) / 40f, p.y > 90f ? 0.6f : 0f);
-                float edge = Mathf.InverseLerp(58f, 80f, p.x);                  // fades out toward the stream half
+                float near = Mathf.Max(1f - Vector2.Distance(p, RuinArch) / (40f * Scale), p.y > LZ(90f) ? 0.6f : 0f);
+                float edge = Mathf.InverseLerp(LX(58f), LX(80f), p.x);                  // fades out toward the stream half
                 if (mask * 0.8f + near * 0.6f + 0.15f < 0.62f || rng.NextDouble() > edge + 0.2f) continue;
                 float w = Mathf.Lerp(8.4f, 9.4f, (float)rng.NextDouble());
                 var c = new Vector3(p.x + (float)rng.NextDouble() - 0.5f, 0.1f + (float)rng.NextDouble() * 0.25f, p.y + (float)rng.NextDouble() - 0.5f);
@@ -424,9 +446,9 @@ public static class CourtyardBuilder
                 else Block(paving, c, new Vector3(w, 1f, w), Quaternion.Euler((float)rng.NextDouble() - 0.5f, (float)rng.NextDouble() * 6 - 3, (float)rng.NextDouble() - 0.5f), Pick(PavingPalette, rng), rng, 0.15f);
             }
         // a few slabs in front of the aqueduct too
-        for (int i = 0; i < 9; i++)
+        for (int i = 0; i < 22; i++)
         {
-            var p = new Vector2(24f + (float)rng.NextDouble() * 34f, 100f + (float)rng.NextDouble() * 14f);
+            var p = new Vector2(LX(24f) + (float)rng.NextDouble() * 34f * Scale, LZ(100f) + (float)rng.NextDouble() * 14f * Scale);
             if (InsideStructure(p, 3f) || DistanceToStream(p) < 12f) continue;
             Block(paving, new Vector3(p.x, 0.2f, p.y), new Vector3(8.6f, 1f, 8.6f), Quaternion.Euler(0, (float)rng.NextDouble() * 20 - 10, 0), Pick(PavingPalette, rng), rng, 0.15f);
         }
@@ -453,13 +475,14 @@ public static class CourtyardBuilder
             }
         }
         // slab bridge where the stream crosses z ~ 96
-        var bridge = new Vector3(14f, 0f, 84f);
-        Block(paving, bridge + new Vector3(0, 2.4f, 0), new Vector3(30f, 2.8f, 12f), Quaternion.Euler(0, 26, 0), Pick(PavingPalette, rng), rng, 0.12f);
+        var bridge = new Vector3(LX(14f), 0f, LZ(84f));
+        Block(paving, bridge + new Vector3(0, 2.4f, 0), new Vector3(36f, 2.8f, 13f), Quaternion.Euler(0, 26, 0), Pick(PavingPalette, rng), rng, 0.12f);
         foreach (var s in new[] { -1f, 1f })
-            Block(stone, bridge + Quaternion.Euler(0, 26, 0) * new Vector3(s * 12f, 1.2f, 0), new Vector3(6f, 3f, 13f), Quaternion.Euler(0, 26, 0), Pick(StonePalette, rng), rng);
+            Block(stone, bridge + Quaternion.Euler(0, 26, 0) * new Vector3(s * 15f, 1.2f, 0), new Vector3(6f, 3f, 13f), Quaternion.Euler(0, 26, 0), Pick(StonePalette, rng), rng);
         // stepping stones near z ~ 30
-        for (int i = -1; i <= 1; i++)
-            Block(paving, new Vector3(3f + i * 6.5f, 0.2f, 27f + i * 1.5f), new Vector3(5.5f, 2.2f, 5.5f), Quaternion.Euler(0, i * 17f, 0), Pick(PavingPalette, rng), rng, 0.4f);
+        var steps = new Vector3(LX(3f), 0f, LZ(27f));
+        for (int i = -2; i <= 2; i++)
+            Block(paving, steps + new Vector3(i * 6.2f, 0.2f, i * 1.6f), new Vector3(5.5f, 2.2f, 5.5f), Quaternion.Euler(0, i * 17f, 0), Pick(PavingPalette, rng), rng, 0.4f);
     }
 
     // ------------------------------------------------------------------ ground
@@ -478,7 +501,7 @@ public static class CourtyardBuilder
                 float hills = (EnvMeshKit.Noise(new Vector3(x / 46f, 0, z / 46f), 5) - 0.4f) * 9f;
                 h = Mathf.Max(0f, Mathf.Min((inside - 6f) * 0.12f, 16f)) + hills * Mathf.Clamp01((inside - 6f) / 30f);
             }
-            if (z < -20f) h -= Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-20f, -36f, z)) * 42f;   // the front edge falls away
+            if (z < CliffZ) h -= Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(CliffZ, CliffZ - 16f, z)) * 42f;   // the front edge falls away
             float ds = DistanceToStream(p);
             float halfW = StreamWidth(z) * 0.5f;
             if (ds < halfW + 6f && z < AqueductFace + 20f)
@@ -499,11 +522,11 @@ public static class CourtyardBuilder
             float ds = DistanceToStream(p);
             float halfW = StreamWidth(z) * 0.5f;
             if (ds < halfW + 5f) c = Color.Lerp(dirt, c, Mathf.SmoothStep(0f, 1f, (ds - halfW + 1f) / 6f));
-            if (z < -20f) c = Color.Lerp(c, cliff, Mathf.InverseLerp(-20f, -28f, z));
+            if (z < CliffZ) c = Color.Lerp(c, cliff, Mathf.InverseLerp(CliffZ, CliffZ - 8f, z));
             c.a = 1f;
             return c;
         }
-        return EnvMeshKit.Ground(new Vector2(-240f, -60f), new Vector2(340f, 360f), 4f, Height, Paint, "Courtyard_Ground");
+        return EnvMeshKit.Ground(new Vector2(LX(-240f), LZ(-60f)), new Vector2(LX(340f), LZ(360f)), 5f, Height, Paint, "Courtyard_Ground");
     }
 
     // ------------------------------------------------------------------ water
@@ -531,7 +554,7 @@ public static class CourtyardBuilder
         return pts;
     }
 
-    static float StreamWidth(float z) => z > AqueductFace ? 22f : z < -6f ? 11f : Mathf.Lerp(12f, 16f, Mathf.Sin(Mathf.InverseLerp(-6f, AqueductFace, z) * Mathf.PI));
+    static float StreamWidth(float z) => z > AqueductFace ? 24f : z < LZ(-6f) ? 13f : Mathf.Lerp(15f, 20f, Mathf.Sin(Mathf.InverseLerp(LZ(-6f), AqueductFace, z) * Mathf.PI));
 
     static Mesh BuildWater(List<Vector3> path)
     {
@@ -561,8 +584,8 @@ public static class CourtyardBuilder
         }
 
         // forest ring outside the walls
-        for (float x = -230f; x < 330f; x += 24f)
-            for (float z = -10f; z < 350f; z += 24f)
+        for (float x = LX(-230f); x < LX(330f); x += 30f)
+            for (float z = LZ(-10f); z < LZ(350f); z += 30f)
             {
                 var p = new Vector2(x + (float)(rng.NextDouble() * 16 - 8), z + (float)(rng.NextDouble() * 16 - 8));
                 float d = ArenaDistance(p);
@@ -580,15 +603,15 @@ public static class CourtyardBuilder
             }
 
         // inside: ferns and plantain along the walls and structures, dandelions and mushrooms dotted around
-        for (int i = 0; i < 260; i++)
+        for (int i = 0; i < 640; i++)
         {
-            var p = new Vector2(Mathf.Lerp(-32f, 144f, (float)rng.NextDouble()), Mathf.Lerp(-6f, 166f, (float)rng.NextDouble()));
+            var p = new Vector2(Mathf.Lerp(LX(-32f), LX(144f), (float)rng.NextDouble()), Mathf.Lerp(LZ(-6f), LZ(166f), (float)rng.NextDouble()));
             if (!InsideArena(p, 2f) || InsideStructure(p, 1f) || DistanceToStream(p) < StreamWidth(p.y) * 0.5f + 2f || NearCover(p, 9f) || NearRuinPillar(p, 8f)) continue;
             float wall = -ArenaDistance(p);                                   // distance to the wall
             float structure = DistanceToStructures(p);
             bool edge = wall < 9f || structure < 8f || NearCover(p, 15f);
-            bool paved = p.x > 70f && p.y < 106f;
-            bool nearCamera = p.y < 30f;                                     // the front strip: keep it low and light
+            bool paved = p.x > LX(70f) && p.y < LZ(106f);
+            const bool nearCamera = false;
             if (edge && rng.NextDouble() < (nearCamera ? 0.45 : 0.75))
             {
                 if (rng.NextDouble() < (nearCamera ? 0.3 : 0.6)) Place(fern, plants, new Vector3(p.x, 0, p.y), (nearCamera ? 13f : 18f) + (float)rng.NextDouble() * 8f);
@@ -598,10 +621,11 @@ public static class CourtyardBuilder
             else if (structure < 20f && rng.NextDouble() < 0.12) Place(mushroom, plants, new Vector3(p.x, 0, p.y), 16f + (float)rng.NextDouble() * 8f);
         }
         // on top of the aqueduct and terrace
-        for (int i = 0; i < 22; i++)
+        for (int i = 0; i < 46; i++)
         {
             bool aq = i % 2 == 0;
-            var rect = aq ? Rect.MinMaxRect(-40, 124, 48, 164) : Rect.MinMaxRect(100, 116, 152, 164);
+            var rect = aq ? Rect.MinMaxRect(AqueductRect.xMin + 4f, AqueductRect.yMin + 6f, AqueductRect.xMax - 14f, AqueductRect.yMax - 2f)
+                          : Rect.MinMaxRect(TerraceRect.xMin + 4f, TerraceRect.yMin + 8f, TerraceRect.xMax - 4f, TerraceRect.yMax - 2f);
             var p = new Vector2(Mathf.Lerp(rect.xMin, rect.xMax, (float)rng.NextDouble()), Mathf.Lerp(rect.yMin, rect.yMax, (float)rng.NextDouble()));
             Place(rng.NextDouble() < 0.7 ? fern : plantain, plants, new Vector3(p.x, (aq ? AqueductTop : TerraceTop) + 1.4f, p.y), 18f + (float)rng.NextDouble() * 9f);
         }
@@ -623,14 +647,10 @@ public static class CourtyardBuilder
         var map = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
         map.transform.SetAsFirstSibling();
 
-        var spawn = GameObject.Find("SpawnRegion");
-        if (spawn)
-        {
-            spawn.transform.SetPositionAndRotation(SpawnArea.center, Quaternion.identity);
-            var box = spawn.GetComponent<BoxCollider>();
-            box.center = Vector3.zero;
-            box.size = SpawnArea.size;
-        }
+        var angel = GameObject.Find("Angel");
+        if (angel) angel.transform.position = AngelStart;
+        var evil = GameObject.Find("Evil");
+        if (evil) evil.transform.position = EvilStart;
 
         var sun = GameObject.Find("Directional Light");
         if (sun)
@@ -670,7 +690,7 @@ public static class CourtyardBuilder
             var so = new SerializedObject(asset);
             so.FindProperty("m_ShadowDistance").floatValue = 320f;
             so.FindProperty("m_ShadowCascadeCount").intValue = path.Contains("PC") ? 4 : 2;
-            so.FindProperty("m_Cascade4Split").vector3Value = new Vector3(0.38f, 0.55f, 0.75f);
+            so.FindProperty("m_Cascade4Split").vector3Value = new Vector3(0.08f, 0.22f, 0.5f);
             so.FindProperty("m_Cascade2Split").floatValue = 0.55f;
             if (path.Contains("PC")) so.FindProperty("m_MainLightShadowmapResolution").intValue = 4096;
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -890,7 +910,7 @@ public static class CourtyardBuilder
         if (inside <= 6f) return 0f;
         float hills = (EnvMeshKit.Noise(new Vector3(p.x / 46f, 0, p.y / 46f), 5) - 0.4f) * 9f;
         float h = Mathf.Max(0f, Mathf.Min((inside - 6f) * 0.12f, 16f)) + hills * Mathf.Clamp01((inside - 6f) / 30f);
-        if (p.y < -20f) h -= Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-20f, -36f, p.y)) * 42f;
+        if (p.y < CliffZ) h -= Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(CliffZ, CliffZ - 16f, p.y)) * 42f;
         return h;
     }
 

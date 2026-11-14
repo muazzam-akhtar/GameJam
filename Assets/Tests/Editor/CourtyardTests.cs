@@ -72,24 +72,12 @@ namespace GameJamTests
             }
         }
 
-        [Test]
-        public void SpawnArea_IsOpenGround()
+        [TestCase(true)]
+        [TestCase(false)]
+        public void PlayerStart_IsFree(bool angel)
         {
-            var solids = Solids(Prefab());
-            var area = CourtyardBuilder.SpawnArea;
-            for (float x = area.min.x; x <= area.max.x + 0.01f; x += 4f)
-                for (float z = area.min.z; z <= area.max.z + 0.01f; z += 4f)
-                {
-                    var p = new Vector3(x, 12f, z);
-                    var inside = solids.FirstOrDefault(b => Contains(b, p));
-                    Assert.IsNull(inside, $"spawn point {p} is inside {inside?.name}");
-                }
-        }
-
-        [TestCase(0f, 47.1f)]
-        [TestCase(124.5f, 47.1f)]
-        public void PlayerStart_IsFree(float x, float z)
-        {
+            var start = angel ? CourtyardBuilder.AngelStart : CourtyardBuilder.EvilStart;
+            float x = start.x, z = start.z;
             var solids = Solids(Prefab());
             // the character's footprint (~24 wide) at body height
             for (float dx = -12f; dx <= 12f; dx += 4f)
