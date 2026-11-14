@@ -1,18 +1,22 @@
 using UnityEngine;
+using System.Collections;
 
 [RequireComponent(typeof(Rigidbody))]
 public class P1Controller : MonoBehaviour
 {
     [SerializeField] private float  moveSpeed = 50.0f;
     [SerializeField] private Rigidbody          rb;
+    [SerializeField] private float rotationSpeed = 720f;
     private Vector2                 movementInput;
-    public float maxDistance = 10f;
+    public float maxDistance = 20f;
     public LayerMask targetLayers;
+    [SerializeField] private bool    canSlap;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
+        canSlap = true;
     }
 
     private void Update()
@@ -27,6 +31,7 @@ public class P1Controller : MonoBehaviour
     private void FixedUpdate()
     {
         MovePlayer();
+        RotatePlayer();
     }
 
     void    MovePlayer()
@@ -36,19 +41,48 @@ public class P1Controller : MonoBehaviour
         rb.linearVelocity = targetVelocity;
     }
 
+    void RotatePlayer()
+    {
+        if (movementInput.sqrMagnitude < 0.01f) return;
+
+        Vector3 moveDir = new Vector3(movementInput.x, 0.0f, movementInput.y);
+        float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+
+        targetYaw = Mathf.Round(targetYaw / 45f) * 45f;
+
+        Quaternion targetRot = Quaternion.Euler(0f, targetYaw, 0f);
+
+        Quaternion newRot = Quaternion.RotateTowards(
+            rb.rotation,
+            targetRot,
+            rotationSpeed * Time.fixedDeltaTime
+        );
+        rb.MoveRotation(newRot);
+    }
+
+
+    IEnumerator ResetSlapCooldown()
+    {
+        yield return new WaitForSeconds(4.0f);
+        canSlap = true;
+    }
+
     void    SlapEvent()
     {
-        // Define the origin and direction
         Vector3 origin = transform.position;
         Vector3 direction = transform.forward;
+        origin.y += 20.0f;
 
-        // Visualize the ray in the Scene view for debugging
         Debug.DrawRay(origin, direction * maxDistance, Color.red);
 
-        // Perform the raycast
-        if (Physics.Raycast(origin, direction, out RaycastHit hit, maxDistance, targetLayers))
+        if (canSlap && Physics.Raycast(origin, direction, out RaycastHit hit, maxDistance, targetLayers))
         {
-            Debug.Log($"Hit {hit.collider.gameObject.name} at distance {hit.distance}");
+            if (hit.collider.gameObject.name == "Evil")
+            {
+                Debug.Log($"Hit {hit.collider.gameObject.name} at distance {hit.distance}");
+                canSlap = false;
+                StartCoroutine(ResetSlapCooldown());
+            }
         }
     }
 }

@@ -2,13 +2,13 @@ using UnityEngine;
 
 public class ScoreManager : MonoBehaviour
 {
-    public int P1Score;
-    public int P2Score;
+    public int AngelScore;
+    public int EvilScore;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Awake()
     {
-        P1Score = 0;
-        P2Score = 0;
+        AngelScore = 0;
+        EvilScore = 0;
     }
 
     // Update is called once per frame
