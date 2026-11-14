@@ -7,13 +7,14 @@ public class P1Controller : MonoBehaviour
     [SerializeField] private float  moveSpeed = 50.0f;
     [SerializeField] private Rigidbody          rb;
     [SerializeField] private float rotationSpeed = 720f;
-    private Vector2                 movementInput;
 <<<<<<< Updated upstream
+    [SerializeField] private float rotationSpeed = 720f;
 =======
+>>>>>>> Stashed changes
+    private Vector2                 movementInput;
     public float maxDistance = 20f;
     public LayerMask targetLayers;
     [SerializeField] private bool    canSlap;
->>>>>>> Stashed changes
 
     private void Awake()
     {
@@ -43,8 +44,6 @@ public class P1Controller : MonoBehaviour
         Vector3 targetVelocity = moveDirection * moveSpeed;
         rb.linearVelocity = targetVelocity;
     }
-<<<<<<< Updated upstream
-=======
 
     void RotatePlayer()
     {
@@ -77,6 +76,10 @@ public class P1Controller : MonoBehaviour
         Vector3 origin = transform.position;
         Vector3 direction = transform.forward;
         origin.y += 20.0f;
+<<<<<<< Updated upstream
+        origin.y += 20.0f;
+=======
+>>>>>>> Stashed changes
 
         Debug.DrawRay(origin, direction * maxDistance, Color.red);
 
@@ -90,5 +93,4 @@ public class P1Controller : MonoBehaviour
             }
         }
     }
->>>>>>> Stashed changes
 }
