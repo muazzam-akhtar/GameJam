@@ -96,6 +96,8 @@ public class P1Controller : MonoBehaviour
                 // the one who got hit flinches and sees stars
                 var victim = hit.collider.GetComponentInParent<ICharacterActions>();
                 if (victim != null) victim.Stung();
+                var victimLives = hit.collider.GetComponentInParent<PlayerLives>();
+                if (victimLives != null) victimLives.LoseLife();
             }
         }
     }
