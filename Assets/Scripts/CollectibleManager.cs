@@ -22,10 +22,10 @@ public class CollectibleManager : MonoBehaviour
     {
         if (taken == false && other.CompareTag("Player"))
         {
-            if (other.gameObject.name == "P1")
-                _scoreManager.P1Score++;
-            else if (other.gameObject.name == "P2")
-                _scoreManager.P2Score++;
+            if (other.gameObject.name == "Angel")
+                _scoreManager.AngelScore++;
+            else if (other.gameObject.name == "Evil")
+                _scoreManager.EvilScore++;
             taken = true;
             Destroy(this.gameObject, 1.0f);
         }
