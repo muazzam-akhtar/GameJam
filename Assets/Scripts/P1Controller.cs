@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(Rigidbody))]
 public class P1Controller : MonoBehaviour
@@ -15,6 +16,7 @@ public class P1Controller : MonoBehaviour
     [SerializeField] private bool    canSlap;
     [Tooltip("Slap button. P1 = Left Shift (next to WASD).")]
     [SerializeField] private Key     slapKey = Key.LeftShift;
+    [SerializeField] private Image _slapIcon;
 
     private void Awake()
     {
@@ -89,6 +91,7 @@ public class P1Controller : MonoBehaviour
     {
         yield return new WaitForSeconds(4.0f);
         canSlap = true;
+        SetAlpha(1.0f);
     }
 
     void    SlapEvent()
@@ -109,6 +112,7 @@ public class P1Controller : MonoBehaviour
             {
                 Debug.Log($"Hit {hit.collider.gameObject.name} at distance {hit.distance}");
                 canSlap = false;
+                SetAlpha(0.5f);
                 StartCoroutine(ResetSlapCooldown());
                 // the one who got hit flinches and sees stars
                 var victim = hit.collider.GetComponentInParent<ICharacterActions>();
@@ -117,5 +121,15 @@ public class P1Controller : MonoBehaviour
                 if (victimLives != null) victimLives.LoseLife();
             }
         }
+    }
+
+    private void SetAlpha(float alphaValue)
+    {
+        if (!_slapIcon) return;                 // not wired in every scene (the HUD shows slap state too)
+        Color currentColor = _slapIcon.color;
+        Debug.Log("Color Before: " + _slapIcon.color);
+        currentColor.a = alphaValue;
+        _slapIcon.color = currentColor;
+        Debug.Log("Color Before: " + _slapIcon.color);
     }
 }
