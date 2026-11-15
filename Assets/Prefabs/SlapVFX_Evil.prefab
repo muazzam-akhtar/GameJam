@@ -287,7 +287,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1
+      scalar: 10
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -1615,7 +1615,7 @@ ParticleSystem:
     y:
       serializedVersion: 2
       minMaxState: 0
-      scalar: -12
+      scalar: -50
       minScalar: 0
       maxCurve:
         serializedVersion: 2
@@ -4913,7 +4913,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9087334584625701662}
   m_Layer: 0
-  m_Name: SlapVFX
+  m_Name: SlapVFX_Evil
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -20,7 +20,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: MI_HandSlap
+  m_Name: MI_HandSlap_Good
   m_Shader: {fileID: -6465566751694194690, guid: ec0e8666b86cfe64e8b4b29f27f15892, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -56,6 +56,6 @@ Material:
     - _fresnel_intensity: 1
     - _fresnel_power: 0.6
     m_Colors:
-    - _Color: {r: 4, g: 3.3725493, b: 0, a: 1}
+    - _Color: {r: 0, g: 2.9451494, b: 4, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
