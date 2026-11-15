@@ -100,6 +100,7 @@ public class GuardAI : MonoBehaviour
             {
                 nextSlap = now + slapCooldown;
                 actions?.Slap();
+                SlapFx.Landed(this);                                // in reach: it connects
                 if (targetLives && targetLives.LoseLife(now))
                 {
                     targetActions?.Stung();

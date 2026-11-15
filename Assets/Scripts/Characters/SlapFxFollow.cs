@@ -4,12 +4,31 @@ using UnityEngine;
 /// Holds a slap glove on the slapping hand every frame: the glove's wrist on the hand bone, its fingers along the
 /// bone (the rig's hand bones point their up axis down the fingers), its palm turned to the slapping side - so it
 /// swings, turns and lands exactly with the animated hand. Without a hand bone it waits in front of the body.
+/// If the slap connected (<see cref="landed"/>), <see cref="burstAt"/> seconds in (the hit) it sets off the impact
+/// burst at the palm, once; a miss gets no burst.
 /// </summary>
 public class SlapFxFollow : MonoBehaviour
 {
     public Transform hand, body;
+    public GameObject burst;
+    public float burstAt;
+    /// <summary>The slap hit the other player (set by <see cref="SlapFx.Landed"/>).</summary>
+    public bool landed;
 
-    void LateUpdate() => Snap();
+    float age;
+    bool burstDone;
+
+    void LateUpdate()
+    {
+        Snap();
+        age += Time.deltaTime;
+        if (burstDone || !landed || !burst || age < burstAt) return;
+        burstDone = true;
+        SlapFx.Burst(burst, Palm, body ? body.rotation : transform.rotation);
+    }
+
+    /// <summary>The middle of the glove, where the slap lands.</summary>
+    public Vector3 Palm => transform.position + transform.forward * (SlapFx.Length * 0.45f);
 
     public void Snap()
     {

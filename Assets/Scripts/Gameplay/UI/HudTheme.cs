@@ -59,6 +59,8 @@ public class HudTheme : ScriptableObject
     public GameObject slapVfxKeeper;
     [Tooltip("Hand-slap effect for the Reaper's and the guards' slap.")]
     public GameObject slapVfxReaper;
+    [Tooltip("Impact burst at the moment the slap lands (flash, ring and stars).")]
+    public GameObject slapBurst;
 
     [Header("End-of-match story (versus)")]
     [Tooltip("The main character who comes in when a versus round ends.")]

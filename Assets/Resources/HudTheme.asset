@@ -44,6 +44,7 @@ MonoBehaviour:
   vignette: {fileID: 21300000, guid: 8c667332c16613c48889593f95db2bdd, type: 3}
   slapVfxKeeper: {fileID: 5486185417134981787, guid: 1e936d6dcfd6063428d81fb6ac7c0c33, type: 3}
   slapVfxReaper: {fileID: 8320699647058616376, guid: 1b77b6f882b99254f91b07e0fb480a18, type: 3}
+  slapBurst: {fileID: 7983132263322253958, guid: 167a5be058f8ff341be13f470bc07ac0, type: 3}
   mainCharacter: {fileID: 7162954075573182267, guid: f8980b6891add9b48abd79482697ee4a, type: 3}
   emoteHappy: {fileID: 21300000, guid: 88921b39688b0ca45a71795c3d6131bf, type: 3}
   emoteSad: {fileID: 21300000, guid: 6844879bb407a114f9ff05cd1c51b3ba, type: 3}

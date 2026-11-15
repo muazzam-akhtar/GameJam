@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -8,6 +9,8 @@ using UnityEngine;
 /// (~0.38 s into the Slap clip, measured) and is gone with the follow-through.
 /// The prefab's own spin (rotation over lifetime) and drift (velocity over lifetime) were made for a loose, looping
 /// effect: on a hand they make it flip over and float away, so they're switched off here.
+/// When the slap connects with the other player (<see cref="Landed"/>) the impact burst (SlapBurstVFX: flash, ring,
+/// stars) goes off once at the palm at the hit (<see cref="HitTime"/>); a miss gets the glove only.
 /// </summary>
 public static class SlapFx
 {
@@ -18,10 +21,24 @@ public static class SlapFx
     public const float Length = 14f;
     /// <summary>Seconds from the press to gone: wind-up, hit at ~0.38, follow-through.</summary>
     public const float Life = 0.55f;
+    /// <summary>When the hand lands, from the press (measured on both Slap clips: fastest at 0.38 s).</summary>
+    public const float HitTime = 0.38f;
 
     // small on the press, full at the hit (0.38 / 0.55 ≈ 0.7), shrinking away after
     static readonly AnimationCurve Grow = new AnimationCurve(
         new Keyframe(0f, 0.55f), new Keyframe(0.69f, 1.15f), new Keyframe(0.85f, 1f), new Keyframe(1f, 0f));
+
+    // each character's glove of its current swing, so the hit test can arm its burst
+    static readonly Dictionary<Transform, SlapFxFollow> swings = new Dictionary<Transform, SlapFxFollow>();
+
+    /// <summary>
+    /// The slap of <paramref name="slapper"/> connected (its hit test found the other player): its glove sets off the
+    /// impact burst at the hit. Called right after the swing started, by the slap code that does the hit test.
+    /// </summary>
+    public static void Landed(Component slapper)
+    {
+        if (slapper && swings.TryGetValue(slapper.transform, out var glove) && glove) glove.landed = true;
+    }
 
     public static void Play(CharacterActionsBase who)
     {
@@ -45,6 +62,9 @@ public static class SlapFx
         var follow = fx.AddComponent<SlapFxFollow>();
         follow.hand = hand;
         follow.body = body;
+        follow.burst = theme.slapBurst;
+        follow.burstAt = HitTime;
+        swings[body] = follow;
         follow.Snap();
 
         foreach (var ps in fx.GetComponentsInChildren<ParticleSystem>())
@@ -71,6 +91,28 @@ public static class SlapFx
             grow.size = new ParticleSystem.MinMaxCurve(1f, Grow);
             ps.Play(false);
         }
+        return fx;
+    }
+
+    /// <summary>
+    /// The impact burst, once: the prefab's systems loop (they were set up to be watched in a scene), so here they
+    /// play a single shot and clean up. The stars spray the way the slapper faces.
+    /// </summary>
+    public static GameObject Burst(GameObject prefab, Vector3 at, Quaternion facing)
+    {
+        if (!prefab) return null;
+        var fx = Object.Instantiate(prefab, at, facing);
+        float longest = 0f;
+        foreach (var ps in fx.GetComponentsInChildren<ParticleSystem>())
+        {
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.loop = false;
+            main.startDelay = 0f;
+            longest = Mathf.Max(longest, main.startLifetime.constantMax);
+            ps.Play(false);
+        }
+        if (Application.isPlaying) Object.Destroy(fx, longest + 0.3f);
         return fx;
     }
 
