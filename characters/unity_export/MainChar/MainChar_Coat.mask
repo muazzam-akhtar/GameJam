@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!319 &31900000
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: MainChar_Coat
+  m_Mask: 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  m_Elements:
+  - m_Path: 
+    m_Weight: 0
+  - m_Path: MC_Body
+    m_Weight: 0
+  - m_Path: MC_Coat
+    m_Weight: 0
+  - m_Path: MC_Halo
+    m_Weight: 0
+  - m_Path: MC_Rig
+    m_Weight: 0
+  - m_Path: MC_Rig/body
+    m_Weight: 0
+  - m_Path: MC_Rig/body/arm.L
+    m_Weight: 0
+  - m_Path: MC_Rig/body/arm.R
+    m_Weight: 0
+  - m_Path: MC_Rig/body/coat
+    m_Weight: 1
+  - m_Path: MC_Rig/body/coat/cape_back_01
+    m_Weight: 1
+  - m_Path: MC_Rig/body/coat/cape_back_01/cape_back_02
+    m_Weight: 1
+  - m_Path: MC_Rig/body/coat/cape_L_01
+    m_Weight: 1
+  - m_Path: MC_Rig/body/coat/cape_L_01/cape_L_02
+    m_Weight: 1
+  - m_Path: MC_Rig/body/coat/cape_R_01
+    m_Weight: 1
+  - m_Path: MC_Rig/body/coat/cape_R_01/cape_R_02
+    m_Weight: 1
+  - m_Path: MC_Rig/body/head
+    m_Weight: 0
+  - m_Path: MC_Rig/body/head/halo
+    m_Weight: 0
+  - m_Path: MC_Rig/body/head/wing.L
+    m_Weight: 0
+  - m_Path: MC_Rig/body/head/wing.R
+    m_Weight: 0
+  - m_Path: MC_Rig/body/sparkles
+    m_Weight: 0
+  - m_Path: MC_Rig/body/string
+    m_Weight: 0
+  - m_Path: MC_Rig/body/tail_01
+    m_Weight: 0
+  - m_Path: MC_Rig/body/tail_01/tail_02
+    m_Weight: 0
+  - m_Path: MC_Rig/body/tail_01/tail_02/tail_03
+    m_Weight: 0
+  - m_Path: MC_Sparkles
+    m_Weight: 0
+  - m_Path: MC_String
+    m_Weight: 0
+  - m_Path: MC_Wings
+    m_Weight: 0

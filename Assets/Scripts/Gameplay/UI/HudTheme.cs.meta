@@ -1,0 +1,43 @@
+fileFormatVersion: 2
+guid: 213649a45629b6445ba838adf883d503
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - display: {instanceID: 0}
+  - heading: {instanceID: 0}
+  - numbers: {instanceID: 0}
+  - label: {instanceID: 0}
+  - textShader: {instanceID: 0}
+  - podKeeper: {instanceID: 0}
+  - podReaper: {instanceID: 0}
+  - timerNormal: {instanceID: 0}
+  - timerWarning: {instanceID: 0}
+  - portraitKeeper: {instanceID: 0}
+  - portraitReaper: {instanceID: 0}
+  - slapIcon: {instanceID: 0}
+  - panel: {instanceID: 0}
+  - ribbonKeeper: {instanceID: 0}
+  - ribbonReaper: {instanceID: 0}
+  - heroKeeper: {instanceID: 0}
+  - heroReaper: {instanceID: 0}
+  - heroKeeperGrey: {instanceID: 0}
+  - heroReaperGrey: {instanceID: 0}
+  - buttonNormal: {instanceID: 0}
+  - buttonHover: {instanceID: 0}
+  - buttonPressed: {instanceID: 0}
+  - buttonDisabled: {instanceID: 0}
+  - pill: {instanceID: 0}
+  - circle: {instanceID: 0}
+  - rounded: {instanceID: 0}
+  - glow: {instanceID: 0}
+  - rays: {instanceID: 0}
+  - ring: {instanceID: 0}
+  - vignette: {instanceID: 0}
+  - music: {fileID: 8300000, guid: 182679881af204804bf77d16c5c02098, type: 3}
+  - click: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
