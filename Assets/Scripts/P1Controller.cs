@@ -17,6 +17,7 @@ public class P1Controller : MonoBehaviour
     [Tooltip("Slap button. P1 = Left Shift (next to WASD).")]
     [SerializeField] private Key     slapKey = Key.LeftShift;
     [SerializeField] private Image _slapIcon;
+    public GameManager              _gameManager;
 
     private void Awake()
     {
@@ -114,12 +115,14 @@ public class P1Controller : MonoBehaviour
                 canSlap = false;
                 SetAlpha(0.5f);
                 StartCoroutine(ResetSlapCooldown());
+                _gameManager.PlaySlapSound();
                 // the one who got hit flinches and sees stars
                 var victim = hit.collider.GetComponentInParent<ICharacterActions>();
                 if (victim != null) victim.Stung();
                 SlapFx.Landed(this);                    // it connected: the impact burst goes off at the hit
                 var victimLives = hit.collider.GetComponentInParent<PlayerLives>();
                 if (victimLives != null) victimLives.LoseLife();
+                _gameManager.PlayStunSound();
             }
         }
     }
