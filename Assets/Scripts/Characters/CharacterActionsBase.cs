@@ -34,7 +34,11 @@ public abstract class CharacterActionsBase : MonoBehaviour, ICharacterActions
         if (kb[PowerUpKey].wasPressedThisFrame) PowerUp();
     }
 
-    public virtual void Slap() => Play(SlapHash);
+    public virtual void Slap()
+    {
+        Play(SlapHash);
+        SlapFx.Play(this);                                   // the hand-slap effect (Keeper: good, Reaper: evil)
+    }
 
     public virtual void Stung()
     {

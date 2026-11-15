@@ -42,6 +42,13 @@ MonoBehaviour:
   rays: {fileID: 21300000, guid: 20adacea83d22c445bba1a604d83b10b, type: 3}
   ring: {fileID: 21300000, guid: eab4e66cc4663d0428af5e1bec35d8e4, type: 3}
   vignette: {fileID: 21300000, guid: 8c667332c16613c48889593f95db2bdd, type: 3}
+  slapVfxKeeper: {fileID: 5486185417134981787, guid: 1e936d6dcfd6063428d81fb6ac7c0c33, type: 3}
+  slapVfxReaper: {fileID: 8320699647058616376, guid: 1b77b6f882b99254f91b07e0fb480a18, type: 3}
+  slapBurst: {fileID: 7983132263322253958, guid: 167a5be058f8ff341be13f470bc07ac0, type: 3}
+  mainCharacter: {fileID: 7162954075573182267, guid: f8980b6891add9b48abd79482697ee4a, type: 3}
+  emoteHappy: {fileID: 21300000, guid: 88921b39688b0ca45a71795c3d6131bf, type: 3}
+  emoteSad: {fileID: 21300000, guid: 6844879bb407a114f9ff05cd1c51b3ba, type: 3}
+  mainCharacterSadFace: {fileID: 2800000, guid: c19b769c477a9ad488da342500988616, type: 3}
   music: {fileID: 8300000, guid: ec7d21255a8586248a1c1555de24dfce, type: 3}
   click: {fileID: 8300000, guid: 4ba77b27075fad7498c6de0420249ad8, type: 3}
   musicVolume: 0.45

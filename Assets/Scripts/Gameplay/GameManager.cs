@@ -50,6 +50,8 @@ public class GameManager : MonoBehaviour
     P2Controller evilSlap;
     MatchStats stats;
     int angelLivesSeen, evilLivesSeen;
+    SoloGame solo;
+    EndingScene ending;
     Rigidbody angelBody, evilBody;
     Vector3 angelStart, evilStart;
     Quaternion angelStartRot, evilStartRot;
@@ -72,6 +74,15 @@ public class GameManager : MonoBehaviour
         }
         angelStart = angel.transform.position; angelStartRot = angel.transform.rotation;
         evilStart = evil.transform.position; evilStartRot = evil.transform.rotation;
+
+        if (GameMode.Solo)                              // PLAY on the start screen: the Keeper alone (SoloGame runs it)
+        {
+            Hook(angel.gameObject, 0, angelCamera);
+            PlayMusic();
+            solo = gameObject.AddComponent<SoloGame>();
+            solo.Begin(angel, evil, angelCamera, evilCamera, hud, angelMove, dropper, offerings);
+            return;
+        }
 
         angelLives.Changed += _ => OnLivesChanged();
         evilLives.Changed += _ => OnLivesChanged();
@@ -135,6 +146,7 @@ public class GameManager : MonoBehaviour
 
     void BeginRound()
     {
+        if (ending) Destroy(ending.gameObject);        // hands the cameras back
         if (offerings)
             for (int i = offerings.childCount - 1; i >= 0; i--) Destroy(offerings.GetChild(i).gameObject);
         Rules = new MatchRules(offeringCount);
@@ -163,6 +175,7 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        if (solo) return;
         switch (Current)
         {
             case Phase.HeadStart:
@@ -262,7 +275,11 @@ public class GameManager : MonoBehaviour
         if (Rules.Winner == MatchSide.Angel) { angel.PowerUp(); evil.Stung(); }
         else { evil.PowerUp(); angel.Stung(); }
         InputRouter.MenuOpen = true;                   // free the cursor for the result screen's buttons
-        hud.ShowResult(MatchResult.From(Rules, stats ?? new MatchStats(), timeUp, hunted, dropper ? dropper.Carried : 0), restartKey);
+        var result = MatchResult.From(Rules, stats ?? new MatchStats(), timeUp, hunted, dropper ? dropper.Carried : 0);
+        // the end-of-match story: the main character comes in (happy, taking the surviving souls / sad), then the panel
+        ending = EndingScene.Play(Rules.Winner == MatchSide.Angel, angel.transform,
+            offerings ? offerings.GetComponentsInChildren<Offering>() : null, angelCamera, evilCamera);
+        hud.ShowResult(result, restartKey, ending ? EndingScene.Length : ResultScreen.Freeze);
     }
 
     void SyncScores()

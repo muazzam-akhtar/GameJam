@@ -54,6 +54,22 @@ public class HudTheme : ScriptableObject
     public Sprite ring;
     public Sprite vignette;
 
+    [Header("Effects")]
+    [Tooltip("Hand-slap effect for the Keeper's slap (Art/VFX).")]
+    public GameObject slapVfxKeeper;
+    [Tooltip("Hand-slap effect for the Reaper's and the guards' slap.")]
+    public GameObject slapVfxReaper;
+    [Tooltip("Impact burst at the moment the slap lands (flash, ring and stars).")]
+    public GameObject slapBurst;
+
+    [Header("End-of-match story (versus)")]
+    [Tooltip("The main character who comes in when a versus round ends.")]
+    public GameObject mainCharacter;
+    public Sprite emoteHappy;
+    public Sprite emoteSad;
+    [Tooltip("The main character's body texture with a sad face painted on (the sad ending).")]
+    public Texture2D mainCharacterSadFace;
+
     [Header("Sound")]
     public AudioClip music;
     public AudioClip click;

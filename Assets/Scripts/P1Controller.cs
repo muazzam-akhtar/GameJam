@@ -117,6 +117,7 @@ public class P1Controller : MonoBehaviour
                 // the one who got hit flinches and sees stars
                 var victim = hit.collider.GetComponentInParent<ICharacterActions>();
                 if (victim != null) victim.Stung();
+                SlapFx.Landed(this);                    // it connected: the impact burst goes off at the hit
                 var victimLives = hit.collider.GetComponentInParent<PlayerLives>();
                 if (victimLives != null) victimLives.LoseLife();
             }

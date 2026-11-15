@@ -33,6 +33,11 @@ public class Offering : MonoBehaviour
 
     public event Action<Offering> Eaten;
 
+    [Tooltip("Single player: the Keeper picks it up and the guard Reapers leave it alone.")]
+    public bool keeperCollects;
+    /// <summary>Single player: the Keeper found it.</summary>
+    public event Action<Offering> Collected;
+
     void Awake() => Cache();
 
     void Start() => Burst(goodBurst, 0.6f);                  // a little golden puff where she hides it
@@ -84,8 +89,26 @@ public class Offering : MonoBehaviour
     void OnTriggerEnter(Collider other)
     {
         if (Done) return;
+        if (keeperCollects)
+        {
+            var keeper = other.GetComponentInParent<AngelController>();
+            if (keeper && keeper.enabled) Collect(keeper);
+            return;
+        }
         var evil = other.GetComponentInParent<EvilController>();
         if (evil && evil.enabled) Devour(evil);
+    }
+
+    /// <summary>Single player: the Keeper got it.</summary>
+    public void Collect(AngelController keeper)
+    {
+        if (Done) return;
+        Done = true;
+        Burst(goodBurst);
+        Collected?.Invoke(this);
+        if (keeper) keeper.PowerUp();
+        if (Application.isPlaying) Destroy(gameObject);
+        else DestroyImmediate(gameObject);
     }
 
     /// <summary>The Evil got it.</summary>
