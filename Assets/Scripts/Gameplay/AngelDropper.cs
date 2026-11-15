@@ -37,6 +37,12 @@ public class AngelDropper : MonoBehaviour
 
     void Update()
     {
+        // E on the keyboard, A / LB on a controller, right-click on her mouse (whatever InputRouter gave her)
+        if (TryGetComponent<PlayerInputSource>(out var input))
+        {
+            if (input.ActionPressed) TryDrop(Time.time);
+            return;
+        }
         var kb = Keyboard.current;
         if (kb != null && dropKey != Key.None && kb[dropKey].wasPressedThisFrame) TryDrop(Time.time);
     }

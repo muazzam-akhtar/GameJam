@@ -9,6 +9,7 @@ public class P1Controller : MonoBehaviour
     [SerializeField] private Rigidbody          rb;
     [SerializeField] private float rotationSpeed = 720f;
     private Vector2                 movementInput;
+    private PlayerInputSource       input;
     public float maxDistance = 20f;
     public LayerMask targetLayers;
     [SerializeField] private bool    canSlap;
@@ -20,10 +21,21 @@ public class P1Controller : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
         canSlap = true;
+        input = GetComponent<PlayerInputSource>();
     }
 
     private void Update()
     {
+        if (!input) input = GetComponent<PlayerInputSource>();
+        if (input)
+        {
+            // keyboard, controller or both, relative to this player's camera (PlayerInputSource / InputRouter)
+            var world = input.MoveWorld;
+            movementInput = new Vector2(world.x, world.z);
+            if (input.SlapPressed) SlapEvent();
+            return;
+        }
+
         float   moveX = Input.GetAxisRaw("P1_Horizontal");
         float   moveZ = Input.GetAxisRaw("P1_Vertical");
 
@@ -55,7 +67,9 @@ public class P1Controller : MonoBehaviour
         Vector3 moveDir = new Vector3(movementInput.x, 0.0f, movementInput.y);
         float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
 
-        targetYaw = Mathf.Round(targetYaw / 45f) * 45f;
+        // keys snap the facing to 8 directions; with a camera that turns (input source) the move already points
+        // exactly where the player means, so face it as-is
+        if (!input) targetYaw = Mathf.Round(targetYaw / 45f) * 45f;
 
         Quaternion targetRot = Quaternion.Euler(0f, targetYaw, 0f);
 

@@ -17,7 +17,7 @@ public class GameHUD : MonoBehaviour
     {
         public readonly List<Image> hearts = new List<Image>();
         public readonly List<float> punch = new List<float>();
-        public TMP_Text score, extra;
+        public TMP_Text score, extra, controls;
         public int lives = -1;
     }
 
@@ -80,7 +80,7 @@ public class GameHUD : MonoBehaviour
         rt.anchorMin = rt.anchorMax = new Vector2(left ? 0f : 1f, 1f);
         rt.pivot = new Vector2(left ? 0f : 1f, 1f);
         rt.anchoredPosition = new Vector2(left ? 28f : -28f, -24f);
-        rt.sizeDelta = new Vector2(430f, 168f);
+        rt.sizeDelta = new Vector2(480f, 196f);
 
         var name = NewText(rt, "Name", 40f, color, left ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.TopRight);
         name.text = $"<b>{title}</b>";
@@ -107,7 +107,11 @@ public class GameHUD : MonoBehaviour
         Stretch(p.extra.rectTransform, new Vector2(left ? 0.45f : 0f, 0.62f), new Vector2(left ? 1f : 0.55f, 0.82f), new Vector2(left ? 0f : 22f, 0f), new Vector2(left ? -22f : 0f, 0f));
         var help = NewText(rt, "Controls", 19f, new Color(1f, 1f, 1f, 0.6f), left ? TextAlignmentOptions.BottomLeft : TextAlignmentOptions.BottomRight);
         help.text = controls;
-        Stretch(help.rectTransform, Vector2.zero, Vector2.one, new Vector2(22f, 12f), new Vector2(-22f, 0f));
+        help.enableAutoSizing = true;                 // device line + buttons line, shrunk to fit the panel
+        help.fontSizeMin = 12f;
+        help.fontSizeMax = 19f;
+        Stretch(help.rectTransform, Vector2.zero, new Vector2(1f, 0f), new Vector2(22f, 10f), new Vector2(-22f, 60f));
+        p.controls = help;
         return p;
     }
 
@@ -124,6 +128,14 @@ public class GameHUD : MonoBehaviour
             if (p.lives > lives && i >= lives && i < p.lives) p.punch[i] = 1f;       // the heart just lost
         }
         p.lives = lives;
+    }
+
+    /// <summary>What this player plays on and which buttons do what (changes when controllers come and go).</summary>
+    public void SetControls(MatchSide side, string text)
+    {
+        Build();
+        var p = side == MatchSide.Angel ? angel : evil;
+        if (p.controls.text != text) p.controls.text = text;
     }
 
     public void SetScore(MatchSide side, int score, int target)

@@ -57,7 +57,29 @@ public class GameManager : MonoBehaviour
         angelLives.Changed += _ => OnLivesChanged();
         evilLives.Changed += _ => OnLivesChanged();
         if (dropper) dropper.Dropped += OnDropped;
+
+        // controllers / keyboard halves / mice are handed out automatically (InputRouter); each steers its own camera
+        Hook(angel.gameObject, 0, angelCamera);
+        Hook(evil.gameObject, 1, evilCamera);
+        InputRouter.Changed += ShowControls;
+        ShowControls();
         BeginRound();
+    }
+
+    void OnDestroy() => InputRouter.Changed -= ShowControls;
+
+    static void Hook(GameObject player, int index, FollowCamera view)
+    {
+        if (!player.TryGetComponent<PlayerInputSource>(out var input)) input = player.AddComponent<PlayerInputSource>();
+        input.player = index;
+        input.view = view;
+    }
+
+    void ShowControls()
+    {
+        if (!hud) return;
+        hud.SetControls(MatchSide.Angel, InputRouter.Describe(0, true, "drop"));
+        hud.SetControls(MatchSide.Evil, InputRouter.Describe(1, false, null));
     }
 
     void BeginRound()
@@ -92,8 +114,7 @@ public class GameManager : MonoBehaviour
                 }
                 break;
             case Phase.Over:
-                var kb = Keyboard.current;
-                if (kb != null && kb[restartKey].wasPressedThisFrame) BeginRound();
+                if (InputRouter.AnyRestartPressed(restartKey)) BeginRound();
                 break;
         }
         if (dropper) hud.SetOfferings(dropper.ActiveCount, dropper.maxActive, dropper.CooldownLeft <= 0f);
@@ -135,7 +156,7 @@ public class GameManager : MonoBehaviour
         SetControls(false);
         if (Rules.Winner == MatchSide.Angel) { angel.PowerUp(); evil.Stung(); }
         else { evil.PowerUp(); angel.Stung(); }
-        hud.ShowWinner(Rules.Winner, Rules.Reason, restartKey.ToString());
+        hud.ShowWinner(Rules.Winner, Rules.Reason, Gamepad.all.Count > 0 ? $"{restartKey} / Start" : restartKey.ToString());
     }
 
     void SyncScores()
