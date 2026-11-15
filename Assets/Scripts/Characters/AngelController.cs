@@ -1,48 +1,39 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Serialization;
 
 /// <summary>
 /// Angel.
-///   Idle   flying loop (always playing)
-///   Stung  Space - the stung/slap move, then back to Idle
-/// Game code can call <see cref="Stung"/>.
+///   Idle     flying loop (always playing)
+///   Slap     the slap swing - call <see cref="CharacterActionsBase.Slap"/> on the attacker
+///   Stung    hit reaction (same as the main character's) + golden dizzy stars - call on the one who got slapped
+///   PowerUp  the main character's jump + twirl, with a flare of her holy light
+/// Test keys: 1 slap, 2 stung, 3 power-up.
 /// </summary>
-[RequireComponent(typeof(Animator))]
-public class AngelController : MonoBehaviour
+public class AngelController : CharacterActionsBase
 {
-    [Header("Keys")]
-    [FormerlySerializedAs("slapKey")]
-    [SerializeField] Key stungKey = Key.Space;
+    [Header("Test keys (gameplay code calls Slap / Stung / PowerUp)")]
+    [SerializeField] bool testKeys = true;
+    [SerializeField] Key testSlapKey = Key.Digit1;
+    [SerializeField] Key testStungKey = Key.Digit2;
+    [SerializeField] Key testPowerUpKey = Key.Digit3;
 
-    static readonly int StungTrigger = Animator.StringToHash("Stung");
-    static readonly int StungState = Animator.StringToHash("Stung");
+    protected override bool TestKeys => testKeys;
+    protected override Key SlapKey => testSlapKey;
+    protected override Key StungKey => testStungKey;
+    protected override Key PowerUpKey => testPowerUpKey;
 
-    Animator animator;
-    Animator Anim => animator != null ? animator : animator = GetComponent<Animator>();
+    AngelGlow glow;
+    AngelGlow Glow => glow ? glow : glow = GetComponent<AngelGlow>();
 
-    public bool IsStunging
+    public override void Slap()
     {
-        get
-        {
-            var current = Anim.GetCurrentAnimatorStateInfo(0);
-            var next = Anim.GetNextAnimatorStateInfo(0);
-            return current.shortNameHash == StungState || next.shortNameHash == StungState;
-        }
+        base.Slap();
+        if (Glow) Glow.Flare();
     }
 
-    void Update()
+    public override void PowerUp()
     {
-        var keyboard = Keyboard.current;
-        if (keyboard != null && keyboard[stungKey].wasPressedThisFrame) Stung();
-    }
-
-    /// <summary>Plays the stung move once; ignored while it is already playing.</summary>
-    public void Stung()
-    {
-        if (IsStunging) return;
-        Anim.SetTrigger(StungTrigger);
-        var glow = GetComponent<AngelGlow>();
-        if (glow) glow.Flare();
+        Play(PowerUpHash);
+        if (Glow) Glow.Flare();
     }
 }

@@ -20,6 +20,9 @@ public class CollectibleManager : MonoBehaviour
                 _scoreManager.AngelScore++;
             else if (other.gameObject.name == "Evil")
                 _scoreManager.EvilScore++;
+            // power-up look on the collector (Angel: jump + twirl, Evil: flames + glow)
+            var actions = other.GetComponentInParent<ICharacterActions>();
+            if (actions != null) actions.PowerUp();
             taken = true;
             Destroy(this.gameObject, 1.0f);
         }
