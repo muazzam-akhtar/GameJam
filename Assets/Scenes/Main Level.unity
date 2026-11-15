@@ -1295,6 +1295,63 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1b77b6f882b99254f91b07e0fb480a18, type: 3}
+--- !u!1001 &3311613824587450826
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -20.96801
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -28.59527
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6389960874699039177, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8878095655372129246, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
+      propertyPath: m_Name
+      value: SlapBurstVFX
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: d4f3345ef01038f4cb63cb9c180ad3ba, type: 3}
 --- !u!1001 &4399260695851236900
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1433,3 +1490,4 @@ SceneRoots:
   - {fileID: 528070846}
   - {fileID: 1720968277637427018}
   - {fileID: 1954124891}
+  - {fileID: 3311613824587450826}
