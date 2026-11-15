@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 213649a45629b6445ba838adf883d503, type: 3}
+  m_Name: HudTheme
+  m_EditorClassIdentifier: Assembly-CSharp::HudTheme
+  display: {fileID: 12800000, guid: 554e8a5304f2a0e4e9933286b886083a, type: 3}
+  heading: {fileID: 12800000, guid: e664d523172ed8340aa5612bc66c2282, type: 3}
+  numbers: {fileID: 12800000, guid: 5a3edf847cb83ee4ca972d01e2e2eb40, type: 3}
+  label: {fileID: 12800000, guid: 3333f949aeabab94bbb1886727b7a7e2, type: 3}
+  textShader: {fileID: 4800000, guid: 68e6db2ebdc24f95958faec2be5558d6, type: 3}
+  podKeeper: {fileID: 3679393728532340190, guid: 31a9a269fbf4828428c50a1fd42b3ae8, type: 3}
+  podReaper: {fileID: -8198005749535382881, guid: 98146290ad25696419d8f728490a71cf, type: 3}
+  timerNormal: {fileID: 7237928389214276628, guid: 9ba288e46145f1e4db13be8f09334531, type: 3}
+  timerWarning: {fileID: 533447759596236653, guid: 5119ee172e8681c47909d867ae84e340, type: 3}
+  portraitKeeper: {fileID: -38402027815922238, guid: b5afd95b0d883bf408fcefc9971bd52e, type: 3}
+  portraitReaper: {fileID: 4983703175015124911, guid: c58127ce59c604b4a9d4d030f80ff4c3, type: 3}
+  slapIcon: {fileID: 21300000, guid: e8e41454a1531cb42910e22c3842b201, type: 3}
+  panel: {fileID: 21300000, guid: 3bca1f52359fda4499b1bf85d2cab509, type: 3}
+  ribbonKeeper: {fileID: -2276151240161299175, guid: e292e290b9427cd4393e320876adbf2f, type: 3}
+  ribbonReaper: {fileID: 488335409477553987, guid: 4d551dc51757afd4aa0c1b99441def0b, type: 3}
+  heroKeeper: {fileID: -7054487478802658080, guid: 53db4edd77065a541a4bb809c56deebc, type: 3}
+  heroReaper: {fileID: -3278732777426424147, guid: 029633d3295ce82448320ee822e87cfa, type: 3}
+  heroKeeperGrey: {fileID: 21300000, guid: 16da6872a5effb9439576a742ec27753, type: 3}
+  heroReaperGrey: {fileID: 21300000, guid: 563784a2328173445b6c2e83d85602a3, type: 3}
+  buttonNormal: {fileID: -678955496229776862, guid: 295fb4a3366f9be468c1866519c0a16b, type: 3}
+  buttonHover: {fileID: 957320225782700332, guid: 582ae3a05ec9de84b901accc8ed2b2c0, type: 3}
+  buttonPressed: {fileID: 6061917702075437095, guid: 1a917e2943d4c534b9ea7cd374b558b3, type: 3}
+  buttonDisabled: {fileID: -4113285518894196011, guid: 80b0770fb168952449e5eb89d195a7ce, type: 3}
+  pill: {fileID: 21300000, guid: bc6f25a89ed309c469438fc7ef9d750d, type: 3}
+  circle: {fileID: 21300000, guid: 76fa2206261ab7a429673dec6acd1e61, type: 3}
+  rounded: {fileID: 21300000, guid: 301069e1e35345747ab2f5a5e71b32d5, type: 3}
+  glow: {fileID: 21300000, guid: 7afb10733df397148a8d59baf134025e, type: 3}
+  rays: {fileID: 21300000, guid: 20adacea83d22c445bba1a604d83b10b, type: 3}
+  ring: {fileID: 21300000, guid: eab4e66cc4663d0428af5e1bec35d8e4, type: 3}
+  vignette: {fileID: 21300000, guid: 8c667332c16613c48889593f95db2bdd, type: 3}
+  music: {fileID: 8300000, guid: ec7d21255a8586248a1c1555de24dfce, type: 3}
+  click: {fileID: 8300000, guid: 4ba77b27075fad7498c6de0420249ad8, type: 3}
+  musicVolume: 0.45
+  clickVolume: 0.9

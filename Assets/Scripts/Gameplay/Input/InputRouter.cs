@@ -21,6 +21,9 @@ public static class InputRouter
     /// <summary>Read every mouse / trackpad on its own when nobody has a controller (Windows).</summary>
     public static bool SeparatePointers = true;
 
+    /// <summary>A menu (the result screen) is up: the cursor stays free so its buttons can be clicked.</summary>
+    public static bool MenuOpen;
+
     static readonly int[] padOwner = { -1, -1 };
     static PlayerDevices[] current = InputAssignment.Resolve(false, false, 1, false);
     static readonly Vector2[] pointerDelta = new Vector2[InputAssignment.Players];
@@ -49,6 +52,7 @@ public static class InputRouter
         swapPointers = false;
         pointerCount = -1;
         dirty = true;
+        MenuOpen = false;
         if (Cursor.lockState != CursorLockMode.None) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
     }
 
@@ -190,7 +194,7 @@ public static class InputRouter
         bool wasLocked = Cursor.lockState == CursorLockMode.Locked;
         if (clicked && Application.isFocused) cursorFree = false;
 
-        bool lockIt = wanted && !cursorFree && Application.isFocused;
+        bool lockIt = wanted && !MenuOpen && !cursorFree && Application.isFocused;
         if (lockIt != wasLocked)
         {
             Cursor.lockState = lockIt ? CursorLockMode.Locked : CursorLockMode.None;

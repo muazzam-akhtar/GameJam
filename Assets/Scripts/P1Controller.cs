@@ -53,6 +53,9 @@ public class P1Controller : MonoBehaviour
         RotatePlayer();
     }
 
+    /// <summary>The slap is off cooldown (the HUD's slap icon lights up).</summary>
+    public bool SlapReady => canSlap;
+
     void    MovePlayer()
     {
         Vector3 moveDirection = new Vector3(movementInput.x, 0.0f, movementInput.y).normalized;

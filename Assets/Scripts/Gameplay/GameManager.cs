@@ -1,5 +1,7 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Runs a round of hide and seek:
@@ -9,7 +11,8 @@ using UnityEngine.InputSystem;
 ///                hide all of hers by then;
 ///   over       - the Evil wins by devouring them all or if the Angel didn't hide them all in time, the Angel when
 ///                she hid them all and some survived the clock, or whoever still has lives
-///                → R / Start to play again (instant reset, no scene reload).
+///                → the result screen: REMATCH (or R / Start, instant reset, no scene reload) or MAIN MENU.
+/// On screen (<see cref="GameHUD"/>) the Angel is the Keeper, the Evil the Reaper and the offerings are souls.
 /// Also sets the players' bodies up for smooth split-screen play (no gravity, height locked, interpolated) and turns
 /// on each half's look (<see cref="SplitViewFX"/>: the Evil's world is dark, lit by his lantern).
 /// </summary>
@@ -32,6 +35,8 @@ public class GameManager : MonoBehaviour
     [Tooltip("Seconds the Evil has to find them all.")]
     [SerializeField] float huntTime = 120f;
     [SerializeField] Key restartKey = Key.R;
+    [Tooltip("Scene MAIN MENU on the result screen goes back to.")]
+    [SerializeField] string menuScene = "MainMenu";
 
     public MatchRules Rules { get; private set; }
     public Phase Current { get; private set; }
@@ -41,6 +46,10 @@ public class GameManager : MonoBehaviour
     PlayerLives angelLives, evilLives;
     AngelDropper dropper;
     Behaviour angelMove, evilMove;
+    P1Controller angelSlap;
+    P2Controller evilSlap;
+    MatchStats stats;
+    int angelLivesSeen, evilLivesSeen;
     Rigidbody angelBody, evilBody;
     Vector3 angelStart, evilStart;
     Quaternion angelStartRot, evilStartRot;
@@ -50,8 +59,8 @@ public class GameManager : MonoBehaviour
         angelLives = angel.GetComponent<PlayerLives>();
         evilLives = evil.GetComponent<PlayerLives>();
         dropper = angel.GetComponent<AngelDropper>();
-        angelMove = angel.GetComponent<P1Controller>();
-        evilMove = evil.GetComponent<P2Controller>();
+        angelMove = angelSlap = angel.GetComponent<P1Controller>();
+        evilMove = evilSlap = evil.GetComponent<P2Controller>();
         angelBody = angel.GetComponent<Rigidbody>();
         evilBody = evil.GetComponent<Rigidbody>();
         foreach (var body in new[] { angelBody, evilBody })
@@ -79,10 +88,36 @@ public class GameManager : MonoBehaviour
         ShowControls();
 
         SplitViewFX.Install(gameObject, angel, evil, angelCamera ? angelCamera.GetComponent<Camera>() : null, evilCamera ? evilCamera.GetComponent<Camera>() : null);
+        hud.RematchPressed += Rematch;
+        hud.MainMenuPressed += ToMainMenu;
+        PlayMusic();
         BeginRound();
     }
 
-    void OnDestroy() => InputRouter.Changed -= ShowControls;
+    void OnDestroy()
+    {
+        InputRouter.Changed -= ShowControls;
+        InputRouter.MenuOpen = false;
+        if (hud)
+        {
+            hud.RematchPressed -= Rematch;
+            hud.MainMenuPressed -= ToMainMenu;
+        }
+    }
+
+    /// <summary>The team's music (HudTheme), looping under the match.</summary>
+    void PlayMusic()
+    {
+        var theme = HudTheme.Load();
+        if (!theme || !theme.music) return;
+        var music = gameObject.AddComponent<AudioSource>();
+        music.clip = theme.music;
+        music.loop = true;
+        music.playOnAwake = false;
+        music.spatialBlend = 0f;
+        music.volume = theme.musicVolume;
+        music.Play();
+    }
 
     static void Hook(GameObject player, int index, FollowCamera view)
     {
@@ -94,7 +129,7 @@ public class GameManager : MonoBehaviour
     void ShowControls()
     {
         if (!hud) return;
-        hud.SetControls(MatchSide.Angel, InputRouter.Describe(0, true, "hide offering"));
+        hud.SetControls(MatchSide.Angel, InputRouter.Describe(0, true, "hide soul"));
         hud.SetControls(MatchSide.Evil, InputRouter.Describe(1, false, null));
     }
 
@@ -103,6 +138,8 @@ public class GameManager : MonoBehaviour
         if (offerings)
             for (int i = offerings.childCount - 1; i >= 0; i--) Destroy(offerings.GetChild(i).gameObject);
         Rules = new MatchRules(offeringCount);
+        stats = new MatchStats();
+        InputRouter.MenuOpen = false;
         if (dropper) dropper.Refill();
         Place(angelBody, angelStart, angelStartRot);
         Place(evilBody, evilStart, evilStartRot);
@@ -118,9 +155,9 @@ public class GameManager : MonoBehaviour
         if (dropper) dropper.enabled = true;
         if (evilMove) evilMove.enabled = false;
         Freeze(evilBody, true);
-        hud.HideCenter();
+        hud.ResetForRound();
         hud.ShowHeadStart(TimeLeft);
-        hud.SetTimer(huntTime, false);
+        hud.SetTimer(huntTime);
         SyncScores();
     }
 
@@ -141,28 +178,53 @@ public class GameManager : MonoBehaviour
                 break;
             case Phase.Hunt:
                 TimeLeft -= Time.deltaTime;
-                hud.SetTimer(Mathf.Max(0f, TimeLeft), TimeLeft <= 15f);
+                hud.SetTimer(Mathf.Max(0f, TimeLeft));
                 if (TimeLeft <= 0f)
                 {
+                    hud.TimeUp();
                     Rules.TimeUp(dropper ? dropper.Carried : 0);
                     CheckOver();
                 }
                 break;
             case Phase.Over:
-                if (InputRouter.AnyRestartPressed(restartKey)) BeginRound();
-                break;
+                break;                                  // the result screen: REMATCH / MAIN MENU (GameHUD)
         }
         if (Current != Phase.Over) SyncScores();
+        hud.SetSlapReady(MatchSide.Angel, angelSlap && angelSlap.enabled && angelSlap.SlapReady);
+        hud.SetSlapReady(MatchSide.Evil, evilSlap && evilSlap.enabled && evilSlap.SlapReady);
+    }
+
+    void Rematch()
+    {
+        if (Current == Phase.Over) BeginRound();
+    }
+
+    void ToMainMenu()
+    {
+        if (Current == Phase.Over) StartCoroutine(LoadMenu());
+    }
+
+    IEnumerator LoadMenu()
+    {
+        yield return new WaitForSecondsRealtime(0.35f);   // let the click sound play
+        if (Application.CanStreamedLevelBeLoaded(menuScene)) SceneManager.LoadScene(menuScene);
+        else
+        {
+            Debug.LogWarning($"GameManager: scene '{menuScene}' isn't in the build settings - starting a new round instead.");
+            BeginRound();
+        }
     }
 
     void OnDropped(Offering o)
     {
         if (offerings) o.transform.SetParent(offerings, true);
         angel.PowerUp();                               // hiding one is her power-up: a happy twirl and a flare of light
+        stats?.SoulHidden();
         o.Eaten += _ =>
         {
             if (Current == Phase.Over) return;
             Rules.Devoured();                          // the offering itself powers the Evil up
+            stats?.SoulTaken();
             hud.Devoured(Rules.Eaten, Rules.Offerings);
             SyncScores();
             CheckOver();
@@ -173,6 +235,13 @@ public class GameManager : MonoBehaviour
     {
         hud.SetLives(MatchSide.Angel, angelLives.Lives);
         hud.SetLives(MatchSide.Evil, evilLives.Lives);
+        if (stats != null && Current != Phase.Over)    // every life lost is a slap the other one landed
+        {
+            for (int i = angelLives.Lives; i < angelLivesSeen; i++) stats.Slapped(MatchSide.Angel);
+            for (int i = evilLives.Lives; i < evilLivesSeen; i++) stats.Slapped(MatchSide.Evil);
+        }
+        angelLivesSeen = angelLives.Lives;
+        evilLivesSeen = evilLives.Lives;
         if (Current == Phase.Over) return;
         Rules.LivesChanged(angelLives.Lives, evilLives.Lives);
         CheckOver();
@@ -181,6 +250,8 @@ public class GameManager : MonoBehaviour
     void CheckOver()
     {
         if (!Rules.IsOver || Current == Phase.Over) return;
+        bool timeUp = Current == Phase.Hunt && TimeLeft <= 0f;
+        float hunted = Current == Phase.Hunt ? Mathf.Clamp(huntTime - TimeLeft, 0f, huntTime) : 0f;
         Current = Phase.Over;
         if (angelMove) angelMove.enabled = false;
         if (evilMove) evilMove.enabled = false;
@@ -190,7 +261,8 @@ public class GameManager : MonoBehaviour
         evilLives.Invulnerable = false;
         if (Rules.Winner == MatchSide.Angel) { angel.PowerUp(); evil.Stung(); }
         else { evil.PowerUp(); angel.Stung(); }
-        hud.ShowWinner(Rules.Winner, Rules.Reason, Gamepad.all.Count > 0 ? $"{restartKey} / Start" : restartKey.ToString());
+        InputRouter.MenuOpen = true;                   // free the cursor for the result screen's buttons
+        hud.ShowResult(MatchResult.From(Rules, stats ?? new MatchStats(), timeUp, hunted, dropper ? dropper.Carried : 0), restartKey);
     }
 
     void SyncScores()

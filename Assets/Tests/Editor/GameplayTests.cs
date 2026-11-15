@@ -92,7 +92,7 @@ namespace GameJamTests
             for (int i = 0; i < 7; i++) r.Devoured();
             r.TimeUp(0);
             Assert.AreEqual(MatchSide.Angel, r.Winner);
-            StringAssert.Contains("one offering survived", r.Reason);
+            StringAssert.Contains("one soul survived", r.Reason);
             r.Devoured();
             Assert.AreEqual(MatchSide.Angel, r.Winner, "nothing changes once it's over");
             Assert.AreEqual(7, r.Eaten);
