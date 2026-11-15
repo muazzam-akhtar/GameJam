@@ -14,6 +14,20 @@ public class MainMenuManager : MonoBehaviour
         StartCoroutine(WaitAndLoad(1));
     }
 
+    /// <summary>PLAY: single player - the Keeper against guard Reapers.</summary>
+    public void PlaySolo()
+    {
+        GameMode.Solo = true;
+        LoadSceneWithDelay();
+    }
+
+    /// <summary>VERSUS: two players, split screen.</summary>
+    public void PlayVersus()
+    {
+        GameMode.Solo = false;
+        LoadSceneWithDelay();
+    }
+
     private IEnumerator WaitAndLoad(int sceneIndex)
     {
         // Wait for 1 second

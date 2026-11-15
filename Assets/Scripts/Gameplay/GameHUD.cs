@@ -28,6 +28,8 @@ public class GameHUD : MonoBehaviour
         public bool slapReady = true;
         public float slapPunch, scorePunch;
         public int lives = -1, scoreShown = -1;
+        public readonly List<GameObject> parts = new List<GameObject>();     // hidden in single player (the Reaper's)
+        public TMP_Text label;
     }
 
     HudTheme theme;
@@ -48,6 +50,11 @@ public class GameHUD : MonoBehaviour
     RectTransform barFill, barOrb;
     float barValue = 1f, barTarget = 1f;
     TMP_Text chip;
+    GameObject divider, balance, chipBox;
+
+    // single player
+    TMP_Text bannerTitle;
+    float soloBanner = -1f;
 
     // head start / hunt call
     CanvasGroup blind, keeperBanner, huntCall;
@@ -89,9 +96,10 @@ public class GameHUD : MonoBehaviour
 
         BuildHeadStart();                                   // the blindfold sits under everything else
 
-        var divider = HudStyle.Img(match, "Divider", null, new Color(0.05f, 0.04f, 0.08f, 1f));
-        HudStyle.Stretch(divider.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(-3f, 0f), new Vector2(3f, 0f));
-        var line = HudStyle.Img(divider.rectTransform, "Line", null, new Color(0.93f, 0.88f, 1f, 0.35f));
+        var dividerImg = HudStyle.Img(match, "Divider", null, new Color(0.05f, 0.04f, 0.08f, 1f));
+        divider = dividerImg.gameObject;
+        HudStyle.Stretch(dividerImg.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(-3f, 0f), new Vector2(3f, 0f));
+        var line = HudStyle.Img(dividerImg.rectTransform, "Line", null, new Color(0.93f, 0.88f, 1f, 0.35f));
         HudStyle.Stretch(line.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(-1f, 0f), new Vector2(1f, 0f));
 
         vignette = HudStyle.Img(match, "Final Vignette", theme ? theme.vignette : null, new Color(1f, 0.12f, 0.18f, 0f));
@@ -128,6 +136,7 @@ public class GameHUD : MonoBehaviour
             pod.color = k ? new Color(0.11f, 0.2f, 0.42f, 0.92f) : new Color(0.3f, 0.06f, 0.17f, 0.92f);
         }
         var prt = HudStyle.Tl(pod.rectTransform, k ? 334f : 1136f, 16f, 450f, 112.5f);
+        s.parts.Add(pod.gameObject);
 
         var portraitSprite = theme ? (k ? theme.portraitKeeper : theme.portraitReaper) : null;
         if (portraitSprite)
@@ -141,6 +150,7 @@ public class GameHUD : MonoBehaviour
         float tx = k ? 116f : 104f;                                                // clear of the portrait ring
         var label = HudStyle.Text(prt, "Label", theme ? theme.label : null, 14f, new Color(1f, 1f, 1f, 0.82f), align, TextLook.Plain, 18f);
         label.text = k ? "SOULS SAFE" : "SOULS TAKEN";
+        s.label = label;
         HudStyle.Tl(label.rectTransform, tx, 25f, 230f, 18f);
         var name = HudStyle.Text(prt, "Name", theme ? theme.heading : null, 25f, Color.white, align, k ? TextLook.Holy : TextLook.Hellfire, 4f);
         name.text = k ? "KEEPER" : "REAPER";
@@ -153,6 +163,7 @@ public class GameHUD : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             var slot = HudStyle.Tl(HudStyle.Group(band, "Heart " + (i + 1)), k ? 426f + i * 40f : 1920f - 426f - 32f - i * 40f, 132f, 32f, 32f);
+            s.parts.Add(slot.gameObject);
             var edge = HudStyle.Img(slot, "Edge", HudStyle.Heart(true), new Color(0.1f, 0.05f, 0.09f, 1f));
             HudStyle.Stretch(edge.rectTransform, Vector2.zero, Vector2.one, new Vector2(-3f, -3f), new Vector2(3f, 3f));
             var fill = HudStyle.Img(slot, "Fill", HudStyle.Heart(false), HudStyle.HeartRed);
@@ -165,11 +176,13 @@ public class GameHUD : MonoBehaviour
         var slapSprite = theme ? theme.slapIcon : null;
         s.slap = HudStyle.Img(band, "Slap Ready", slapSprite, Color.white);
         s.slap.preserveAspect = true;
+        s.parts.Add(s.slap.gameObject);
         HudStyle.Tl(s.slap.rectTransform, k ? 359f : 1920f - 359f - 42f, 127f, 42f, 42f);
         if (!slapSprite) s.slap.enabled = false;
 
         s.status = HudStyle.Text(band, "Status", theme ? theme.label : null, 18f, new Color(1f, 1f, 1f, 0.9f), align, TextLook.Neutral);
         HudStyle.Tl(s.status.rectTransform, k ? 426f : 1920f - 426f - 420f, 168f, 420f, 26f);
+        s.parts.Add(s.status.gameObject);
 
         // who plays on what - bottom corner of the player's own half
         s.controls = HudStyle.Text(match, k ? "Keeper Controls" : "Reaper Controls", theme ? theme.label : null, 17f, new Color(1f, 1f, 1f, 0.66f),
@@ -178,6 +191,7 @@ public class GameHUD : MonoBehaviour
         s.controls.fontSizeMin = 11f;
         s.controls.fontSizeMax = 17f;
         HudStyle.Stretch(s.controls.rectTransform, new Vector2(k ? 0f : 0.5f, 0f), new Vector2(k ? 0.5f : 1f, 0f), new Vector2(24f, 16f), new Vector2(-24f, 70f));
+        s.parts.Add(s.controls.gameObject);
         return s;
     }
 
@@ -203,6 +217,7 @@ public class GameHUD : MonoBehaviour
     {
         var pill = theme ? theme.pill : null;
         var track = HudStyle.Img(band, "Soul Balance", pill ? pill : HudStyle.Rounded(theme), HudStyle.ReaperRed, true);
+        balance = track.gameObject;
         var trt = HudStyle.Tl(track.rectTransform, 560f, 143f, 800f, 14f);
         var fill = HudStyle.Img(trt, "Safe", pill ? pill : HudStyle.Rounded(theme), HudStyle.KeeperBlue, true);
         barFill = HudStyle.Fill(fill.rectTransform);
@@ -219,6 +234,7 @@ public class GameHUD : MonoBehaviour
         HudStyle.Stretch(core.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-8f, -8f), new Vector2(8f, 8f));
 
         var chipBg = HudStyle.Img(band, "Souls In Play", pill ? pill : HudStyle.Rounded(theme), new Color(0.055f, 0.047f, 0.094f, 0.82f), true);
+        chipBox = chipBg.gameObject;
         var crt = HudStyle.Tl(chipBg.rectTransform, 850f, 163f, 220f, 26f);
         chip = HudStyle.Text(crt, "Text", theme ? theme.label : null, 13f, new Color(1f, 1f, 1f, 0.88f), TextAlignmentOptions.Center, TextLook.Plain, 18f);
         HudStyle.Fill(chip.rectTransform);
@@ -266,6 +282,7 @@ public class GameHUD : MonoBehaviour
         keeperBanner = banner.gameObject.AddComponent<CanvasGroup>();
         var bt = HudStyle.Text(br, "Title", theme ? theme.heading : null, 24f, Color.white, TextAlignmentOptions.Left, TextLook.Holy, 4f);
         bt.text = "HIDE ALL YOUR SOULS";
+        bannerTitle = bt;
         HudStyle.Stretch(bt.rectTransform, Vector2.zero, new Vector2(0.6f, 1f), new Vector2(24f, 0f), Vector2.zero);
         bannerSub = HudStyle.Text(br, "Sub", theme ? theme.label : null, 22f, new Color(1f, 1f, 1f, 0.9f), TextAlignmentOptions.Right, TextLook.Neutral);
         HudStyle.Stretch(bannerSub.rectTransform, new Vector2(0.6f, 0f), Vector2.one, Vector2.zero, new Vector2(-24f, 0f));
@@ -417,10 +434,48 @@ public class GameHUD : MonoBehaviour
     }
 
     /// <summary>The round is over: the result screen (after the 1.2 s freeze).</summary>
-    public void ShowResult(MatchResult r, Key restartKey = Key.R)
+    public void ShowResult(MatchResult r, Key restartKey = Key.R, float freeze = ResultScreen.Freeze)
     {
         Build();
-        result.Show(r, restartKey);
+        result.Show(r, restartKey, freeze);
+    }
+
+    // ---------------------------------------------------------------- single player
+
+    /// <summary>Single player: the Keeper's side only, full width - no Reaper pod, divider, balance bar or timer.</summary>
+    public void SetSolo(bool on)
+    {
+        Build();
+        foreach (var go in reaper.parts) go.SetActive(!on);
+        divider.SetActive(!on);
+        balance.SetActive(!on);
+        chipBox.SetActive(!on);
+        timerPlate.gameObject.SetActive(!on);
+        keeper.label.text = on ? "SOULS FOUND" : "SOULS SAFE";
+        var br = (RectTransform)keeperBanner.transform;
+        br.anchorMin = br.anchorMax = new Vector2(on ? 0.5f : 0.25f, 0f);
+    }
+
+    /// <summary>Single player: souls found so far, and whether the gate is open.</summary>
+    public void SetSoloProgress(int found, int total, bool gateOpen)
+    {
+        Build();
+        SetScore(keeper, found);
+        int left = total - found;
+        HudStyle.SetText(keeper.status, gateOpen
+            ? "<color=#9df0b0>the gate is open</color>  ·  fly through the ruined arch"
+            : $"<color=#ffd35a>{left} {Souls(left)} left</color>  ·  the Reapers guard them");
+    }
+
+    /// <summary>Single player: a message on the bottom strip for a few seconds.</summary>
+    public void SoloBanner(string title, string sub, float seconds)
+    {
+        Build();
+        bannerTitle.text = title;
+        bannerSub.text = sub;
+        keeperBanner.gameObject.SetActive(true);
+        keeperBanner.alpha = 1f;
+        soloBanner = seconds;
     }
 
     /// <summary>A new round: no result screen, no TIME!, calm timer.</summary>
@@ -476,7 +531,15 @@ public class GameHUD : MonoBehaviour
             }
         }
         result.Step(dt);
-        matchGroup.alpha = 1f - result.DimProgress;                                 // the match HUD gives way to the panel
+        // the match HUD gives way to the panel - or, while the ending plays, right after TIME! so nothing covers it
+        float early = result.Showing && result.FreezeSeconds > ResultScreen.Freeze ? Mathf.Clamp01((result.Age - 0.7f) / 0.4f) : 0f;
+        matchGroup.alpha = 1f - Mathf.Max(early, result.DimProgress);
+        if (soloBanner >= 0f)
+        {
+            soloBanner -= dt;
+            keeperBanner.alpha = Mathf.Clamp01(soloBanner / 0.6f);
+            if (soloBanner < 0f) keeperBanner.gameObject.SetActive(false);
+        }
     }
 
     void AnimateTimer(float dt)

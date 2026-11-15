@@ -32,6 +32,8 @@ public sealed class MatchStats
 /// <summary>Everything the result screen needs about a finished round.</summary>
 public struct MatchResult
 {
+    /// <summary>Single player (the Keeper against guard Reapers).</summary>
+    public bool solo;
     public MatchSide winner;
     /// <summary>Why it ended, e.g. "3 souls survived the hunt".</summary>
     public string reason;

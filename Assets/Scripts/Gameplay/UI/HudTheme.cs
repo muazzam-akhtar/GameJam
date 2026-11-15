@@ -54,6 +54,14 @@ public class HudTheme : ScriptableObject
     public Sprite ring;
     public Sprite vignette;
 
+    [Header("End-of-match story (versus)")]
+    [Tooltip("The main character who comes in when a versus round ends.")]
+    public GameObject mainCharacter;
+    public Sprite emoteHappy;
+    public Sprite emoteSad;
+    [Tooltip("The main character's body texture with a sad face painted on (the sad ending).")]
+    public Texture2D mainCharacterSadFace;
+
     [Header("Sound")]
     public AudioClip music;
     public AudioClip click;

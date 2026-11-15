@@ -65,10 +65,20 @@ public class MainCharController : MonoBehaviour
             transform.position += transform.forward * (currentSpeed * Time.deltaTime);
     }
 
+    bool scripted;
+
+    /// <summary>Game code drives it (the end-of-match scene): no test keys, no key guide, it doesn't move itself.</summary>
+    public void DriveFromCode()
+    {
+        scripted = true;
+        moveInWorld = false;
+        showKeyGuide = false;
+    }
+
     void HandleKeys()
     {
         var kb = Keyboard.current;
-        if (kb == null) return;
+        if (kb == null || scripted) return;
 
         if (keyboardControl)
         {

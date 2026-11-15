@@ -18,8 +18,14 @@ public class ResultScreen : MonoBehaviour
 {
     /// <summary>Seconds the finished round stays frozen (TIME! / the winner's cheer) before the panel comes in.</summary>
     public const float Freeze = 1.2f;
-    const float DimAt = Freeze, PanelAt = Freeze + 0.1f, BannerAt = Freeze + 0.3f, CountAt = Freeze + 0.45f,
-                RaysAt = Freeze + 0.75f, RowsAt = Freeze + 0.85f, ButtonsAt = Freeze + 1.25f;
+    float freeze = Freeze;                              // longer when the end-of-match story plays first
+    float DimAt => freeze;
+    float PanelAt => freeze + 0.1f;
+    float BannerAt => freeze + 0.3f;
+    float CountAt => freeze + 0.45f;
+    float RaysAt => freeze + 0.75f;
+    float RowsAt => freeze + 0.85f;
+    float ButtonsAt => freeze + 1.25f;
 
     public event Action Rematch, MainMenu;
 
@@ -29,6 +35,9 @@ public class ResultScreen : MonoBehaviour
     public bool Interactive => Showing && !chosen && age >= ButtonsAt + 0.3f;
     /// <summary>0 → 1 as the screen dims behind the panel (the match HUD fades out with it).</summary>
     public float DimProgress => Showing ? Mathf.Clamp01((age - DimAt) / 0.3f) : 0f;
+    /// <summary>Seconds since the round ended, and how long the panel waits (longer while the ending plays).</summary>
+    public float Age => age;
+    public float FreezeSeconds => freeze;
     public MatchResult Current => result;
 
     HudTheme theme;
@@ -41,7 +50,7 @@ public class ResultScreen : MonoBehaviour
     Image dim, panel, banner, keeperHero, reaperHero, glow, bigRays;
     RectTransform area, panelRt, bannerRt, tagRt;
     CanvasGroup panelGroup, bannerGroup, tagGroup, raysGroup, buttonsGroup;
-    TMP_Text bannerText, flavour, reason, keeperScore, reaperScore, keeperName, reaperName, keeperPlayer, reaperPlayer, footer;
+    TMP_Text bannerText, flavour, reason, keeperScore, reaperScore, keeperName, reaperName, keeperPlayer, reaperPlayer, footer, savedLabel, takenLabel;
     Vector2 bannerHome;
     Button rematch, menu;
     readonly Row[] rows = new Row[4];
@@ -51,7 +60,7 @@ public class ResultScreen : MonoBehaviour
         public CanvasGroup group;
         public RectTransform rt;
         public Vector2 home;
-        public TMP_Text left, right;
+        public TMP_Text left, right, label;
         public RectTransform leftBar, rightBar;
     }
 
@@ -119,9 +128,11 @@ public class ResultScreen : MonoBehaviour
         HudStyle.Tl(reaperScore.rectTransform, 575f, 228f, 190f, 136f);
         var saved = HudStyle.Text(panelRt, "Saved Label", Label, 15f, new Color(1f, 1f, 1f, 0.85f), TextAlignmentOptions.Center, TextLook.Plain, 30f);
         saved.text = "SAVED";
+        savedLabel = saved;
         HudStyle.Tl(saved.rectTransform, 400f, 360f, 180f, 20f);
         var taken = HudStyle.Text(panelRt, "Taken Label", Label, 15f, new Color(1f, 1f, 1f, 0.85f), TextAlignmentOptions.Center, TextLook.Plain, 30f);
         taken.text = "TAKEN";
+        takenLabel = taken;
         HudStyle.Tl(taken.rectTransform, 580f, 360f, 180f, 20f);
 
         // names
@@ -183,6 +194,7 @@ public class ResultScreen : MonoBehaviour
         HudStyle.Tl(row.right.rectTransform, 720f, 0f, 80f, 34f);
         var text = HudStyle.Text(row.rt, "Label", Label, 14f, new Color(1f, 1f, 1f, 0.82f), TextAlignmentOptions.Center, TextLook.Plain, 22f);
         text.text = label;
+        row.label = text;
         HudStyle.Tl(text.rectTransform, 260f, 0f, 300f, 34f);
         row.leftBar = Bar(row.rt, true);
         row.rightBar = Bar(row.rt, false);
@@ -230,9 +242,10 @@ public class ResultScreen : MonoBehaviour
 
     // ---------------------------------------------------------------- show / hide
 
-    public void Show(MatchResult r, Key restart = Key.R)
+    public void Show(MatchResult r, Key restart = Key.R, float freezeSeconds = Freeze)
     {
         result = r;
+        freeze = Mathf.Max(0f, freezeSeconds);
         restartKey = restart;
         Showing = true;
         chosen = buttonsLive = false;
@@ -249,7 +262,13 @@ public class ResultScreen : MonoBehaviour
         banner.enabled = banner.sprite;
         bannerText.text = keeperWins ? "KEEPERS WIN" : "REAPERS WIN";
         HudStyle.SetLook(bannerText, keeperWins ? TextLook.Holy : TextLook.Hellfire);
-        flavour.text = keeperWins ? "The souls are safe... for now." : "The souls belong to the Reaper now.";
+        flavour.text = r.solo
+            ? (keeperWins ? "Every soul found. The gate is yours." : "The Reapers caught the Keeper.")
+            : (keeperWins ? "The souls are safe... for now." : "The souls belong to the Reaper now.");
+        savedLabel.text = r.solo ? "FOUND" : "SAVED";
+        takenLabel.text = r.solo ? "LEFT" : "TAKEN";
+        rows[0].label.text = r.solo ? "SOULS FOUND / LEFT" : "SOULS SAVED / TAKEN";
+        reaperPlayer.text = r.solo ? "Guards" : "Player 2";
         reason.text = string.IsNullOrEmpty(r.reason) ? "" : r.reason.ToUpperInvariant();
 
         PlaceHero(keeperHero, true, keeperWins);
@@ -276,7 +295,7 @@ public class ResultScreen : MonoBehaviour
 
         int secs = Mathf.CeilToInt(r.huntSeconds);
         string keys = Gamepad.all.Count > 0 ? $"{restartKey} / START" : restartKey.ToString();
-        footer.text = $"MATCH {secs / 60:00}:{secs % 60:00}  ·  {r.total} SOULS RELEASED  ·  {keys} = REMATCH";
+        footer.text = $"MATCH {secs / 60:00}:{secs % 60:00}  ·  {r.total} SOULS {(r.solo ? "HIDDEN" : "RELEASED")}  ·  {keys} = REMATCH";
 
         rematch.interactable = menu.interactable = true;
         if (Application.isPlaying) EnsureEventSystem();
@@ -336,7 +355,7 @@ public class ResultScreen : MonoBehaviour
     {
         if (!Showing) return;
         Step(Time.unscaledDeltaTime);
-        if (!Application.isPlaying || age < Freeze || chosen) return;
+        if (!Application.isPlaying || age < freeze || chosen) return;
         var kb = Keyboard.current;
         bool again = kb != null && restartKey != Key.None && kb[restartKey].wasPressedThisFrame;
         foreach (var g in Gamepad.all) again |= g.startButton.wasPressedThisFrame;
