@@ -42,11 +42,11 @@ public class SplitViewFX : MonoBehaviour
     public float haloSize = 74f;
 
     [Header("The Evil's shadow (her view only)")]
-    public Color shadowColor = new Color(0.015f, 0f, 0.03f, 0.92f);
-    public float shadowSize = 130f;
-    public Color auraColor = new Color(0.02f, 0f, 0.04f, 0.62f);
-    public float auraSize = 105f;
-    public Color smokeColor = new Color(0.03f, 0f, 0.05f, 0.85f);
+    public Color shadowColor = new Color(0.02f, 0f, 0.04f, 0.5f);
+    public float shadowSize = 110f;
+    public Color auraColor = new Color(0.03f, 0f, 0.05f, 0.26f);
+    public float auraSize = 85f;
+    public Color smokeColor = new Color(0.05f, 0.01f, 0.08f, 0.35f);
 
     Camera angelCam, evilCam;
     Transform angel, evil;
@@ -280,12 +280,12 @@ public class SplitViewFX : MonoBehaviour
         var main = ps.main;
         main.startLifetime = new ParticleSystem.MinMaxCurve(1.6f, 2.6f);
         main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 6f);
-        main.startSize = new ParticleSystem.MinMaxCurve(26f, 44f);
+        main.startSize = new ParticleSystem.MinMaxCurve(18f, 30f);
         main.startColor = smokeColor;
         main.maxParticles = 140;
         main.gravityModifier = -0.15f;                         // drifts up
         var emission = ps.emission;
-        emission.rateOverTime = 32f;
+        emission.rateOverTime = 14f;
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Sphere;
         shape.radius = 12f;

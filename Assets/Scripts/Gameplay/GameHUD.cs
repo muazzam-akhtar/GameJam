@@ -193,7 +193,7 @@ public class GameHUD : MonoBehaviour
             blindNumber.text = n.ToString();
             blindNumber.rectTransform.localScale = Vector3.one * 1.25f;
         }
-        SetText(bannerSub, $"the Evil wakes up in <b>{n}</b>");
+        SetText(bannerSub, $"Evil wakes in <b>{n}</b>");
     }
 
     /// <summary>Head start over: the blindfold drops, HUNT! on the Evil's half, a warning on the Angel's.</summary>
@@ -288,19 +288,20 @@ public class GameHUD : MonoBehaviour
         sub.textWrappingMode = TextWrappingModes.Normal;
         Stretch(sub.rectTransform, new Vector2(0.1f, 0.16f), new Vector2(0.9f, 0.3f), Vector2.zero, Vector2.zero);
 
-        // the Angel's half: a banner under her panel
-        var banner = NewImage(root, "Angel Banner", new Color(0.05f, 0.04f, 0.08f, 0.72f));
+        // the Angel's half: one slim strip at the bottom, out of her way while she plays
+        var banner = NewImage(root, "Angel Banner", new Color(0.05f, 0.04f, 0.08f, 0.6f));
         banner.sprite = rounded; banner.type = Image.Type.Sliced;
         var br = banner.rectTransform;
-        br.anchorMin = br.anchorMax = new Vector2(0.25f, 0.71f);
-        br.sizeDelta = new Vector2(600f, 128f);
+        br.anchorMin = br.anchorMax = new Vector2(0.25f, 0f);
+        br.pivot = new Vector2(0.5f, 0f);
+        br.anchoredPosition = new Vector2(0f, 26f);
+        br.sizeDelta = new Vector2(620f, 56f);
         angelBanner = banner.gameObject.AddComponent<CanvasGroup>();
-        var bt = NewText(br, "Title", 50f, angelColor, TextAlignmentOptions.Center);
-        bt.text = "<b>HIDE ALL YOUR OFFERINGS!</b>";
-        bt.enableAutoSizing = true; bt.fontSizeMin = 28f; bt.fontSizeMax = 50f;
-        Stretch(bt.rectTransform, new Vector2(0f, 0.42f), Vector2.one, Vector2.zero, new Vector2(0f, -6f));
-        bannerSub = NewText(br, "Sub", 30f, new Color(1f, 1f, 1f, 0.85f), TextAlignmentOptions.Center);
-        Stretch(bannerSub.rectTransform, Vector2.zero, new Vector2(1f, 0.45f), new Vector2(0f, 10f), Vector2.zero);
+        var bt = NewText(br, "Title", 26f, angelColor, TextAlignmentOptions.Left);
+        bt.text = "<b>HIDE ALL YOUR OFFERINGS</b>";
+        Stretch(bt.rectTransform, Vector2.zero, new Vector2(0.56f, 1f), new Vector2(22f, 0f), Vector2.zero);
+        bannerSub = NewText(br, "Sub", 24f, new Color(1f, 1f, 1f, 0.85f), TextAlignmentOptions.Right);
+        Stretch(bannerSub.rectTransform, new Vector2(0.56f, 0f), Vector2.one, Vector2.zero, new Vector2(-22f, 0f));
 
         // HUNT! on the Evil's half when the blindfold drops
         var call = new GameObject("Hunt Call", typeof(RectTransform), typeof(CanvasGroup)).GetComponent<RectTransform>();
