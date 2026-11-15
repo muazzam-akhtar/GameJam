@@ -55,6 +55,12 @@ public class GameManager : MonoBehaviour
     Rigidbody angelBody, evilBody;
     Vector3 angelStart, evilStart;
     Quaternion angelStartRot, evilStartRot;
+    [SerializeField] private AudioClip  bgMusictrack;
+    [SerializeField] private AudioClip  AngelCollectibleSound;
+    [SerializeField] private AudioClip  EvilCollectibleSound;
+    [SerializeField] private AudioClip  SlapSound;
+    [SerializeField] private AudioClip  StunSound;
+
 
     void Start()
     {
@@ -105,6 +111,25 @@ public class GameManager : MonoBehaviour
         BeginRound();
     }
 
+    // sound design (SoundDesignIntegration): one-shots on the Game object's AudioSource, the music's source
+    public void PlayAngelCollectedSound() => PlaySfx(AngelCollectibleSound);
+    public void PlayEvilCollectedSound() => PlaySfx(EvilCollectibleSound);
+    public void PlaySlapSound() => PlaySfx(SlapSound);
+    public void PlayStunSound() => PlaySfx(StunSound);
+
+    void PlaySfx(AudioClip clip)
+    {
+        var source = Source();
+        if (source && clip) source.PlayOneShot(clip);
+    }
+
+    /// <summary>The Game object's AudioSource (DemoScene has one; added if a scene doesn't).</summary>
+    AudioSource Source()
+    {
+        if (!TryGetComponent<AudioSource>(out var source)) source = gameObject.AddComponent<AudioSource>();
+        return source;
+    }
+
     void OnDestroy()
     {
         InputRouter.Changed -= ShowControls;
@@ -120,13 +145,14 @@ public class GameManager : MonoBehaviour
     void PlayMusic()
     {
         var theme = HudTheme.Load();
-        if (!theme || !theme.music) return;
-        var music = gameObject.AddComponent<AudioSource>();
-        music.clip = theme.music;
+        var clip = bgMusictrack ? bgMusictrack : theme ? theme.music : null;   // the gameplay track, else the menu's
+        if (!clip) return;
+        var music = Source();
+        music.clip = clip;
         music.loop = true;
         music.playOnAwake = false;
         music.spatialBlend = 0f;
-        music.volume = theme.musicVolume;
+        music.volume = theme ? theme.musicVolume : 0.45f;
         music.Play();
     }
 
@@ -230,7 +256,11 @@ public class GameManager : MonoBehaviour
 
     void OnDropped(Offering o)
     {
-        if (offerings) o.transform.SetParent(offerings, true);
+        if (offerings)
+        {
+            o.transform.SetParent(offerings, true);
+            PlayAngelCollectedSound();
+        }
         angel.PowerUp();                               // hiding one is her power-up: a happy twirl and a flare of light
         stats?.SoulHidden();
         o.Eaten += _ =>
@@ -241,6 +271,7 @@ public class GameManager : MonoBehaviour
             hud.Devoured(Rules.Eaten, Rules.Offerings);
             SyncScores();
             CheckOver();
+            PlayEvilCollectedSound();
         };
     }
 

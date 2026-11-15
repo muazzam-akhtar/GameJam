@@ -27,6 +27,7 @@ public class SoloGame : MonoBehaviour
     static readonly Vector2 Centre = new Vector2(56f, 78f);
 
     AngelController keeper;
+    GameManager sound;                                                    // the sound design lives on the GameManager
     PlayerLives lives;
     Rigidbody body;
     Behaviour keeperMove;
@@ -53,6 +54,7 @@ public class SoloGame : MonoBehaviour
         this.hud = hud;
         this.keeperMove = keeperMove;
         this.container = container;
+        sound = GetComponent<GameManager>();
         cam = keeperCam;
         body = keeper.GetComponent<Rigidbody>();
         start = body.position;
@@ -171,6 +173,7 @@ public class SoloGame : MonoBehaviour
             go.SetActive(true);
             guard.Post(post, soul - post, keeper.transform);
             guard.Stunned += _ => stats.Slapped(MatchSide.Evil);
+            guard.HitKeeper += _ => { if (sound) { sound.PlaySlapSound(); sound.PlayStunSound(); } };
             posted.Add(guard);
         }
     }
@@ -181,6 +184,7 @@ public class SoloGame : MonoBehaviour
     {
         if (over) return;
         found++;
+        if (sound) sound.PlayAngelCollectedSound();
         stats.SoulHidden();                                             // best run of souls found without being slapped
         hud.SetSoloProgress(found, placed.Count, false);
         if (found >= placed.Count) OpenGate();

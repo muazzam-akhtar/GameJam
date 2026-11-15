@@ -1103,11 +1103,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42e3a19d56c3cdd4d9856f1ff3b42f3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainCharController
-  halo: {fileID: 1182789174766830785}
-  coat: {fileID: 4407707487250942835}
-  wings: {fileID: 9204718018052364085}
-  sparkles: {fileID: 4490691685258798108}
-  startOutfit: 2
   keyboardControl: 1
   walkKey: 37
   walkBackKey: 33
@@ -1119,8 +1114,6 @@ MonoBehaviour:
   walkBackSpeed: 1
   runSpeed: 3.2
   acceleration: 8
-  popTime: 0.3
-  powerUpAppearDelay: 0.35
   showKeyGuide: 1
   guideKey: 21
 --- !u!1 &7744602158817678082
@@ -111277,22 +111270,22 @@ AnimatorStateMachine:
   m_ChildStates:
   - serializedVersion: 1
     m_State: {fileID: -3550674643817903890}
-    m_Position: {x: 260, y: 0, z: 0}
+    m_Position: {x: 320, y: -10, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -7687082142035174185}
-    m_Position: {x: 260, y: 140, z: 0}
+    m_Position: {x: 100, y: 120, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 1019362398103650281}
-    m_Position: {x: 0, y: 140, z: 0}
+    m_Position: {x: 320, y: 250, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -319515424175218757}
-    m_Position: {x: 520, y: 140, z: 0}
+    m_Position: {x: 540, y: 120, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 9031934477797489970}
-    m_Position: {x: 120, y: -150, z: 0}
+    m_Position: {x: 100, y: -100, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 3189398953791839406}
-    m_Position: {x: 400, y: -150, z: 0}
+    m_Position: {x: 500, y: -100, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions:
   - {fileID: 3969883705837274889}
@@ -111300,8 +111293,8 @@ AnimatorStateMachine:
   m_EntryTransitions: []
   m_StateMachineTransitions: {}
   m_StateMachineBehaviours: []
-  m_AnyStatePosition: {x: 50, y: 20, z: 0}
-  m_EntryPosition: {x: 50, y: 120, z: 0}
+  m_AnyStatePosition: {x: 320, y: -180, z: 0}
+  m_EntryPosition: {x: 70, y: -10, z: 0}
   m_ExitPosition: {x: 800, y: 120, z: 0}
   m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
   m_DefaultState: {fileID: -3550674643817903890}
