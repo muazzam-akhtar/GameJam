@@ -58,6 +58,8 @@ public static class HudThemeBuilder
         theme.ring = SpriteAt(Ui + "SK_Ring.png");
         theme.vignette = SpriteAt(Ui + "SK_Vignette.png");
 
+        theme.slapVfxKeeper = Load<GameObject>("Assets/Prefabs/SlapVFX_Good.prefab");
+        theme.slapVfxReaper = Load<GameObject>("Assets/Prefabs/SlapVFX_Evil.prefab");
         theme.mainCharacter = Load<GameObject>("Assets/Prefabs/Characters/MainChar/MainChar.prefab");
         theme.emoteHappy = SpriteAt(Ui + "SK_Emote_Happy.png");
         theme.emoteSad = SpriteAt(Ui + "SK_Emote_Sad.png");

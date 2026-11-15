@@ -54,6 +54,12 @@ public class HudTheme : ScriptableObject
     public Sprite ring;
     public Sprite vignette;
 
+    [Header("Effects")]
+    [Tooltip("Hand-slap effect for the Keeper's slap (Art/VFX).")]
+    public GameObject slapVfxKeeper;
+    [Tooltip("Hand-slap effect for the Reaper's and the guards' slap.")]
+    public GameObject slapVfxReaper;
+
     [Header("End-of-match story (versus)")]
     [Tooltip("The main character who comes in when a versus round ends.")]
     public GameObject mainCharacter;
