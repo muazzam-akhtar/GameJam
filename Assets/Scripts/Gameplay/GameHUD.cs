@@ -5,7 +5,9 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Split-screen HUD, built at runtime (no prefab to keep in sync): a panel per player in its own half
-/// (name, hearts, score, controls), a divider between the halves, the 3-2-1-GO countdown and the winner card.
+/// (name, hearts, offerings, controls), a divider between the halves, the hunt timer on top of the divider, the
+/// head start (the Evil's half blindfolded with a countdown, a "hide them!" banner for the Angel), the HUNT! call and
+/// the winner card.
 /// </summary>
 public class GameHUD : MonoBehaviour
 {
@@ -25,6 +27,18 @@ public class GameHUD : MonoBehaviour
     TMP_Text center, centerSub, centerHint;
     RectTransform centerCard;
     float centerPunch;
+
+    // hunt timer
+    RectTransform timerPill;
+    TMP_Text timerText;
+    bool timerUrgent;
+    int timerShown = -1;
+    float timerPunch;
+
+    // head start / hunt call
+    CanvasGroup blind, angelBanner, huntCall;
+    TMP_Text blindNumber, bannerSub, huntCallText;
+    float huntAge = -1f, scorePunch;
     Sprite heartFill, heartEdge, rounded;
 
     void Awake() => Build();
@@ -55,6 +69,8 @@ public class GameHUD : MonoBehaviour
 
         angel = Panel(root, "ANGEL", angelColor, true, "<b>WASD</b> move   <b>L-Shift</b> slap   <b>E</b> drop offering");
         evil = Panel(root, "EVIL", evilColor, false, "<b>Arrows</b> move   <b>R-Shift</b> slap   eat her offerings");
+        BuildHeadStart(root);
+        BuildTimer(root);
 
         // centre card: countdown / winner
         var card = NewImage(root, "Center Card", new Color(0.05f, 0.04f, 0.08f, 0.78f));
@@ -138,34 +154,69 @@ public class GameHUD : MonoBehaviour
         if (p.controls.text != text) p.controls.text = text;
     }
 
-    public void SetScore(MatchSide side, int score, int target)
+    /// <summary>The offerings: in her pouch, hidden around the map, devoured so far, out of how many.</summary>
+    /// <param name="late">The clock is running out: unhidden offerings turn red for the Angel.</param>
+    public void SetPouch(int carried, int hidden, int eaten, int total, bool ready, bool late = false)
     {
         Build();
-        var p = side == MatchSide.Angel ? angel : evil;
-        p.score.text = side == MatchSide.Angel ? $"Blessed <b>{score}</b> / {target}" : $"Devoured <b>{score}</b> / {target}";
+        int safe = total - eaten;
+        SetText(angel.score, $"Safe <b>{safe}</b> / {total}");
+        SetText(angel.extra, carried > 0
+            ? $"<color=#{(late ? "ff6b8f" : "ffd35a")}>{carried} still to hide!</color>  ·  {hidden} hidden" + (ready ? "" : "  <color=#ffffff55>…</color>")
+            : $"<color=#9df0b0>all hidden</color>  ·  {hidden} left");
+        SetText(evil.score, $"Devoured <b>{eaten}</b> / {total}");
+        SetText(evil.extra, carried > 0
+            ? $"<color=#ffd35a>{hidden} hidden</color>  ·  she still holds {carried}"
+            : safe > 0 ? $"<color=#ffd35a>{safe} left to find</color>" : "all found!");
     }
 
-    public void SetOfferings(int active, int max, bool ready)
+    /// <summary>The Evil just ate one: both scores jump.</summary>
+    public void Devoured(int eaten, int total)
     {
         Build();
-        angel.extra.text = $"Offerings {active}/{max}" + (ready ? "" : "  <color=#ffffff66>…</color>");
-        evil.extra.text = active > 0 ? $"<color=#ffd35a>{active} offering{(active == 1 ? "" : "s")} to find</color>" : "nothing to eat yet";
+        scorePunch = 1f;
     }
 
-    public void ShowCountdown(int n)
+    /// <summary>Head start: the Evil's half is blindfolded with a countdown, the Angel gets a "hide them" banner.</summary>
+    public void ShowHeadStart(float secondsLeft)
     {
         Build();
-        if (center.text != n.ToString()) centerPunch = 1f;
-        ShowCenter(n.ToString(), "Angel: bless your offerings   Evil: devour them", "slap = they lose a life");
+        huntAge = -1f;
+        blind.gameObject.SetActive(true);
+        blind.alpha = 1f;
+        angelBanner.gameObject.SetActive(true);
+        angelBanner.alpha = 1f;
+        huntCall.gameObject.SetActive(false);
+        int n = Mathf.CeilToInt(secondsLeft);
+        if (blindNumber.text != n.ToString())
+        {
+            blindNumber.text = n.ToString();
+            blindNumber.rectTransform.localScale = Vector3.one * 1.25f;
+        }
+        SetText(bannerSub, $"the Evil wakes up in <b>{n}</b>");
     }
 
-    public void ShowGo()
+    /// <summary>Head start over: the blindfold drops, HUNT! on the Evil's half, a warning on the Angel's.</summary>
+    public void StartHunt()
     {
         Build();
-        centerPunch = 1f;
-        ShowCenter("GO!", "", "");
-        CancelInvoke(nameof(HideCenter));
-        Invoke(nameof(HideCenter), 0.9f);
+        huntAge = 0f;
+        huntCall.gameObject.SetActive(true);
+        bannerSub.text = "<color=#ff6b8f><b>the Evil is awake!</b></color>";
+    }
+
+    /// <summary>Seconds left in the hunt. Urgent = the last few seconds (red, pulsing).</summary>
+    public void SetTimer(float seconds, bool urgent)
+    {
+        Build();
+        int whole = Mathf.CeilToInt(seconds);
+        if (whole != timerShown)
+        {
+            if (urgent && whole < timerShown) timerPunch = 1f;
+            timerShown = whole;
+            timerText.text = $"{whole / 60}:{whole % 60:00}";
+        }
+        timerUrgent = urgent;
     }
 
     public void ShowWinner(MatchSide winner, string reason, string restartKey)
@@ -194,6 +245,14 @@ public class GameHUD : MonoBehaviour
     {
         if (angel == null) return;
         float dt = Time.unscaledDeltaTime;
+        AnimateHeadStart(dt);
+        timerPunch = Mathf.Max(0f, timerPunch - dt * 2.5f);
+        timerPill.localScale = Vector3.one * (1f + 0.22f * timerPunch * timerPunch);
+        var tc = timerUrgent ? Color.Lerp(new Color(1f, 0.35f, 0.42f), Color.white, timerPunch * 0.5f) : Color.white;
+        if (timerText.color != tc) timerText.color = tc;
+        scorePunch = Mathf.Max(0f, scorePunch - dt * 2.4f);
+        float sp = 1f + 0.35f * scorePunch * scorePunch;
+        angel.score.rectTransform.localScale = evil.score.rectTransform.localScale = Vector3.one * sp;
         if (centerCard && centerCard.gameObject.activeSelf)
         {
             centerPunch = Mathf.Max(0f, centerPunch - dt * 3f);
@@ -207,6 +266,92 @@ public class GameHUD : MonoBehaviour
                 p.hearts[i].rectTransform.localScale = Vector3.one * (1f + 0.6f * k * k);
                 p.hearts[i].rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(k * 20f) * 14f * k);
             }
+    }
+
+    // ---------------------------------------------------------------- head start + timer
+
+    void BuildHeadStart(RectTransform root)
+    {
+        // the Evil's half: blindfolded, dark violet, a big countdown
+        var shade = NewImage(root, "Evil Blindfold", new Color(0.035f, 0.015f, 0.05f, 0.97f));
+        Stretch(shade.rectTransform, new Vector2(0.5f, 0f), Vector2.one, new Vector2(4f, 0f), Vector2.zero);
+        shade.transform.SetSiblingIndex(0);                                    // under the Evil's panel
+        blind = shade.gameObject.AddComponent<CanvasGroup>();
+        var title = NewText(shade.rectTransform, "Title", 46f, evilColor, TextAlignmentOptions.Center);
+        title.text = "<b>THE ANGEL IS HIDING HER OFFERINGS</b>";
+        title.enableAutoSizing = true; title.fontSizeMin = 24f; title.fontSizeMax = 46f;
+        Stretch(title.rectTransform, new Vector2(0.06f, 0.6f), new Vector2(0.94f, 0.7f), Vector2.zero, Vector2.zero);
+        blindNumber = NewText(shade.rectTransform, "Number", 230f, Color.white, TextAlignmentOptions.Center);
+        Stretch(blindNumber.rectTransform, new Vector2(0f, 0.3f), new Vector2(1f, 0.6f), Vector2.zero, Vector2.zero);
+        var sub = NewText(shade.rectTransform, "Sub", 30f, new Color(1f, 1f, 1f, 0.75f), TextAlignmentOptions.Center);
+        sub.text = "eyes shut, Evil... then find and devour <b>every</b> offering before the time runs out";
+        sub.textWrappingMode = TextWrappingModes.Normal;
+        Stretch(sub.rectTransform, new Vector2(0.1f, 0.16f), new Vector2(0.9f, 0.3f), Vector2.zero, Vector2.zero);
+
+        // the Angel's half: a banner under her panel
+        var banner = NewImage(root, "Angel Banner", new Color(0.05f, 0.04f, 0.08f, 0.72f));
+        banner.sprite = rounded; banner.type = Image.Type.Sliced;
+        var br = banner.rectTransform;
+        br.anchorMin = br.anchorMax = new Vector2(0.25f, 0.71f);
+        br.sizeDelta = new Vector2(600f, 128f);
+        angelBanner = banner.gameObject.AddComponent<CanvasGroup>();
+        var bt = NewText(br, "Title", 50f, angelColor, TextAlignmentOptions.Center);
+        bt.text = "<b>HIDE ALL YOUR OFFERINGS!</b>";
+        bt.enableAutoSizing = true; bt.fontSizeMin = 28f; bt.fontSizeMax = 50f;
+        Stretch(bt.rectTransform, new Vector2(0f, 0.42f), Vector2.one, Vector2.zero, new Vector2(0f, -6f));
+        bannerSub = NewText(br, "Sub", 30f, new Color(1f, 1f, 1f, 0.85f), TextAlignmentOptions.Center);
+        Stretch(bannerSub.rectTransform, Vector2.zero, new Vector2(1f, 0.45f), new Vector2(0f, 10f), Vector2.zero);
+
+        // HUNT! on the Evil's half when the blindfold drops
+        var call = new GameObject("Hunt Call", typeof(RectTransform), typeof(CanvasGroup)).GetComponent<RectTransform>();
+        call.SetParent(root, false);
+        Stretch(call, new Vector2(0.5f, 0.4f), new Vector2(1f, 0.75f), Vector2.zero, Vector2.zero);
+        huntCall = call.GetComponent<CanvasGroup>();
+        huntCallText = NewText(call, "Text", 170f, evilColor, TextAlignmentOptions.Center);
+        huntCallText.text = "<b>HUNT!</b>";
+        Stretch(huntCallText.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+        blind.gameObject.SetActive(false);
+        angelBanner.gameObject.SetActive(false);
+        huntCall.gameObject.SetActive(false);
+    }
+
+    void BuildTimer(RectTransform root)
+    {
+        var pill = NewImage(root, "Timer", new Color(0.05f, 0.04f, 0.08f, 0.86f));
+        pill.sprite = rounded; pill.type = Image.Type.Sliced;
+        timerPill = pill.rectTransform;
+        timerPill.anchorMin = timerPill.anchorMax = new Vector2(0.5f, 1f);
+        timerPill.pivot = new Vector2(0.5f, 1f);
+        timerPill.anchoredPosition = new Vector2(0f, -18f);
+        timerPill.sizeDelta = new Vector2(210f, 92f);
+        var rim = pill.gameObject.AddComponent<Outline>();                    // a thin gold rim, same rounded corners
+        rim.effectColor = new Color(gold.r, gold.g, gold.b, 0.55f);
+        rim.effectDistance = new Vector2(2f, -2f);
+        timerText = NewText(timerPill, "Time", 62f, Color.white, TextAlignmentOptions.Center);
+        Stretch(timerText.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(0f, -2f));
+        timerText.text = "2:00";
+    }
+
+    void AnimateHeadStart(float dt)
+    {
+        if (blindNumber && blindNumber.rectTransform.localScale.x > 1f)
+            blindNumber.rectTransform.localScale = Vector3.one * Mathf.MoveTowards(blindNumber.rectTransform.localScale.x, 1f, dt * 1.6f);
+        if (huntAge < 0f) return;
+        huntAge += dt;
+        blind.alpha = 1f - Mathf.Clamp01(huntAge / 0.7f);                     // the blindfold drops
+        if (blind.alpha <= 0f && blind.gameObject.activeSelf) blind.gameObject.SetActive(false);
+        float k = Mathf.Clamp01(huntAge / 0.35f);
+        huntCall.alpha = huntAge < 1.2f ? k : 1f - Mathf.Clamp01((huntAge - 1.2f) / 0.6f);
+        huntCallText.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.6f, 1f, 1f - (1f - k) * (1f - k));
+        if (huntAge > 1.8f && huntCall.gameObject.activeSelf) huntCall.gameObject.SetActive(false);
+        angelBanner.alpha = 1f - Mathf.Clamp01((huntAge - 1.6f) / 0.6f);
+        if (huntAge > 2.2f && angelBanner.gameObject.activeSelf) angelBanner.gameObject.SetActive(false);
+    }
+
+    static void SetText(TMP_Text t, string s)
+    {
+        if (t.text != s) t.text = s;
     }
 
     // ---------------------------------------------------------------- ui helpers

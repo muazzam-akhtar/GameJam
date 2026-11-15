@@ -48,7 +48,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c808eedbff2be4b4ea203dd63a1b3353, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Offering
-  bloomTime: 15
   visual: {fileID: 7520716273276726783}
   ring: {fileID: 3083739190217256648}
   ringRenderer: {fileID: 7289777898386109411}
@@ -147,7 +146,6 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: dbe05a844d87e714690e272fe7fd9002, type: 2}
-  - {fileID: 2100000, guid: 6304d5df4a183844d835cc5494273afe, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

@@ -22,9 +22,54 @@ public static class GameSetupBuilder
     public static void SetupAll()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) { Debug.LogWarning("GameSetupBuilder: leave Play mode first."); return; }
+        EnsureLayers();
+        EnsureViewFxMaterials();
         var offering = BuildOfferingPrefab();
         var profile = BuildPostProfile();
         SetupOpenScene(offering, profile);
+    }
+
+    // ---------------------------------------------------------------- layers + view materials
+
+    /// <summary>Layers for per-player visuals (SplitViewFX) and cave roofs (Hideout / FollowCamera).</summary>
+    public static void EnsureLayers()
+    {
+        var tags = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+        var layers = tags.FindProperty("layers");
+        foreach (var name in new[] { SplitViewFX.AngelViewLayer, SplitViewFX.EvilViewLayer, CourtyardBuilder.CaveRoofLayer })
+        {
+            bool found = false;
+            for (int i = 0; i < layers.arraySize && !found; i++) found = layers.GetArrayElementAtIndex(i).stringValue == name;
+            if (found) continue;
+            for (int i = 8; i < layers.arraySize; i++)
+            {
+                var slot = layers.GetArrayElementAtIndex(i);
+                if (!string.IsNullOrEmpty(slot.stringValue)) continue;
+                slot.stringValue = name;
+                break;
+            }
+        }
+        tags.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    /// <summary>Materials SplitViewFX loads at runtime (in Resources so builds keep their shaders).</summary>
+    public static void EnsureViewFxMaterials()
+    {
+        const string dir = "Assets/Resources/ViewFX";
+        if (!AssetDatabase.IsValidFolder("Assets/Resources")) AssetDatabase.CreateFolder("Assets", "Resources");
+        if (!AssetDatabase.IsValidFolder(dir)) AssetDatabase.CreateFolder("Assets/Resources", "ViewFX");
+        void Make(string name, string shader, System.Action<Material> setup)
+        {
+            var path = $"{dir}/{name}.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!m) { m = new Material(Shader.Find(shader)) { name = name }; AssetDatabase.CreateAsset(m, path); }
+            m.shader = Shader.Find(shader);
+            setup(m);
+            EditorUtility.SetDirty(m);
+        }
+        Make("SoftShade", "GameJam/SoftShade", m => { m.SetColor("_Color", Color.white); m.SetFloat("_Softness", 1.0f); });
+        Make("SoftGlow", "GameJam/SoftGlowParticle", m => m.SetFloat("_Intensity", 2.2f));
+        AssetDatabase.SaveAssets();
     }
 
     // ---------------------------------------------------------------- offering prefab
@@ -60,7 +105,8 @@ public static class GameSetupBuilder
             ringGo.transform.SetParent(root.transform, false);
             ringGo.AddComponent<MeshFilter>().sharedMesh = SaveAsset(RingMesh(8.5f, 11f, 72), $"{Dir}/OfferingRing.asset");
             var ringRenderer = ringGo.AddComponent<MeshRenderer>();
-            ringRenderer.sharedMaterials = new[] { RingMaterial(), RingGlowMaterial() };
+            // emissive + bloom only: the GlowSource pass draws through walls, which would give away offerings hidden in caves
+            ringRenderer.sharedMaterials = new[] { RingMaterial() };
             ringRenderer.shadowCastingMode = ShadowCastingMode.Off;
 
             var lightGo = new GameObject("Glow");
@@ -121,14 +167,6 @@ public static class GameSetupBuilder
         m.SetFloat("_MottleStrength", 0f);
         m.SetFloat("_RimStrength", 0f);
         m.SetFloat("_Cull", 0f);
-        return m;
-    }
-
-    static Material RingGlowMaterial()
-    {
-        var m = LoadOrCreate($"{Dir}/MI_OfferingRingGlow.mat", "GameJam/GlowSource");
-        m.SetColor("_GlowColor", new Color(2.2f, 1.6f, 0.5f));
-        m.SetFloat("_GlowIntensity", 0.8f);
         return m;
     }
 
@@ -216,8 +254,8 @@ public static class GameSetupBuilder
         RenderSettings.fog = true;
         RenderSettings.fogMode = FogMode.Linear;
         RenderSettings.fogColor = new Color(0.78f, 0.82f, 0.88f);
-        RenderSettings.fogStartDistance = 260f;
-        RenderSettings.fogEndDistance = 760f;
+        RenderSettings.fogStartDistance = 420f;
+        RenderSettings.fogEndDistance = 1400f;
         DynamicGI.UpdateEnvironment();
 
         var game = FindOrCreate("Game");

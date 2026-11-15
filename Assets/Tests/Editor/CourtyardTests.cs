@@ -68,7 +68,7 @@ namespace GameJamTests
             {
                 float a = i * Mathf.PI * 2f / 72f;
                 var dir = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a));
-                Assert.IsTrue(solids.Any(b => Hits(b, new Ray(c, dir), 220f)), $"players could leave the arena heading {dir}");
+                Assert.IsTrue(solids.Any(b => Hits(b, new Ray(c, dir), 700f)), $"players could leave the arena heading {dir}");
             }
         }
 

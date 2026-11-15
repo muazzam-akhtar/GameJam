@@ -2,16 +2,13 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// A golden offering the Angel puts down. It pops in, hovers and spins over a glowing ring that fills up as it
-/// ripens; after <see cref="bloomTime"/> seconds it is blessed (the Angel scores). If the Evil touches it first it is
-/// eaten (the Evil scores and flares up). Either way it bursts (Art's Collect Burst Good / BAD) and disappears.
+/// A golden offering the Angel hides. It pops in, then hovers, spins and breathes over a glowing ring for as long
+/// as it takes the Evil to find it - it never expires. When the Evil touches it, it is devoured (the Evil scores and
+/// flares up): it bursts (Art's Collect Burst BAD) and disappears. The Angel can't pick it back up.
 /// </summary>
 [DisallowMultipleComponent]
 public class Offering : MonoBehaviour
 {
-    [Tooltip("Seconds the offering must survive to be blessed.")]
-    public float bloomTime = 15f;
-
     [Header("Look (all optional)")]
     public Transform visual;
     public Transform ring;
@@ -33,12 +30,12 @@ public class Offering : MonoBehaviour
     bool cached;
 
     public bool Done { get; private set; }
-    public float Progress => bloomTime <= 0f ? 1f : Mathf.Clamp01(age / bloomTime);
 
-    public event Action<Offering> Blessed;
     public event Action<Offering> Eaten;
 
     void Awake() => Cache();
+
+    void Start() => Burst(goodBurst, 0.6f);                  // a little golden puff where she hides it
 
     void Cache()
     {
@@ -58,57 +55,56 @@ public class Offering : MonoBehaviour
         Cache();
         age += dt;
         Animate();
-        if (age >= bloomTime) Finish(true, null);
     }
 
     void Animate()
     {
         float pop = popTime > 0f ? EaseOutBack(Mathf.Clamp01(age / popTime)) : 1f;
-        float p = Progress;
-        float pulse = 1f + Mathf.Sin(age * Mathf.Lerp(3f, 13f, p * p)) * Mathf.Lerp(0.03f, 0.12f, p);
+        // a slow calm breath (each offering a little out of step with the others)
+        float phase = transform.position.x * 0.13f + transform.position.z * 0.07f;
+        float breath = Mathf.Sin(age * 2.4f + phase);
+        float pulse = 1f + breath * 0.06f;
         if (visual)
         {
             visual.localPosition = Vector3.up * (hover + Mathf.Sin(age * 2.2f) * bob);
             visual.localRotation = Quaternion.Euler(0f, age * 70f, 0f);
             visual.localScale = visualScale * (pop * pulse);
         }
-        if (ring) ring.localScale = ringScale * (Mathf.Lerp(0.55f, 1f, p) * pop);
+        if (ring) ring.localScale = ringScale * pop;
         if (ringRenderer)
         {
             block ??= new MaterialPropertyBlock();
             ringRenderer.GetPropertyBlock(block);
-            block.SetColor(EmissionId, ringEmission * Mathf.Lerp(0.5f, 2.4f, p) * pulse);
+            block.SetColor(EmissionId, ringEmission * (1.5f + breath * 0.5f));
             ringRenderer.SetPropertyBlock(block);
         }
-        if (glowLight) glowLight.intensity = lightIntensity * Mathf.Lerp(0.6f, 1.7f, p) * pop;
+        if (glowLight) glowLight.intensity = lightIntensity * (1.1f + breath * 0.2f) * pop;
     }
 
     void OnTriggerEnter(Collider other)
     {
         if (Done) return;
         var evil = other.GetComponentInParent<EvilController>();
-        if (evil) Finish(false, evil);
+        if (evil && evil.enabled) Devour(evil);
     }
 
-    void Finish(bool blessed, EvilController eater)
+    /// <summary>The Evil got it.</summary>
+    public void Devour(EvilController eater)
     {
+        if (Done) return;
         Done = true;
-        Burst(blessed ? goodBurst : badBurst);
-        if (blessed) Blessed?.Invoke(this);
-        else
-        {
-            Eaten?.Invoke(this);
-            if (eater) eater.PowerUp();
-        }
+        Burst(badBurst);
+        Eaten?.Invoke(this);
+        if (eater) eater.PowerUp();
         if (Application.isPlaying) Destroy(gameObject);
         else DestroyImmediate(gameObject);
     }
 
-    void Burst(GameObject prefab)
+    void Burst(GameObject prefab, float scale = 1f)
     {
         if (!prefab || !Application.isPlaying) return;
         var b = Instantiate(prefab, transform.position + Vector3.up * hover, Quaternion.identity);
-        b.transform.localScale = Vector3.one * burstScale;
+        b.transform.localScale = Vector3.one * (burstScale * scale);
         foreach (var ps in b.GetComponentsInChildren<ParticleSystem>())
         {
             var main = ps.main;

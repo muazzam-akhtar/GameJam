@@ -51,6 +51,18 @@ namespace GameJamTests
         }
 
         [Test]
+        public void Lives_Invulnerable_IgnoresHits()
+        {
+            var lives = New("P").AddComponent<PlayerLives>();
+            lives.ResetLives();
+            lives.Invulnerable = true;
+            Assert.IsFalse(lives.LoseLife(10f), "the frozen Evil can't be slapped during the head start");
+            Assert.AreEqual(3, lives.Lives);
+            lives.Invulnerable = false;
+            Assert.IsTrue(lives.LoseLife(20f));
+        }
+
+        [Test]
         public void Lives_StopAtZero()
         {
             var lives = New("P").AddComponent<PlayerLives>();
@@ -63,23 +75,37 @@ namespace GameJamTests
         // ---------------------------------------------------------------- match rules
 
         [Test]
-        public void Rules_AngelWinsByBlessingTheTarget()
+        public void Rules_EvilWinsByDevouringEveryOffering()
         {
             var r = new MatchRules(3);
-            r.Blessed(); r.Blessed(); r.Eaten();
-            Assert.IsFalse(r.IsOver);
-            r.Blessed();
-            Assert.AreEqual(MatchSide.Angel, r.Winner);
-            r.Eaten();
-            Assert.AreEqual(1, r.EvilScore, "no scoring after the match is over");
+            r.Devoured(); r.Devoured();
+            Assert.IsFalse(r.IsOver, "one is still hidden");
+            Assert.AreEqual(1, r.Remaining);
+            r.Devoured();
+            Assert.AreEqual(MatchSide.Evil, r.Winner);
         }
 
         [Test]
-        public void Rules_EvilWinsByEatingTheTarget()
+        public void Rules_AngelWinsWhenAllHiddenAndSomeSurviveTheHunt()
         {
-            var r = new MatchRules(2);
-            r.Eaten(); r.Eaten();
+            var r = new MatchRules(8);
+            for (int i = 0; i < 7; i++) r.Devoured();
+            r.TimeUp(0);
+            Assert.AreEqual(MatchSide.Angel, r.Winner);
+            StringAssert.Contains("one offering survived", r.Reason);
+            r.Devoured();
+            Assert.AreEqual(MatchSide.Angel, r.Winner, "nothing changes once it's over");
+            Assert.AreEqual(7, r.Eaten);
+        }
+
+        [Test]
+        public void Rules_EvilWinsIfTheAngelDidntHideThemAll()
+        {
+            var r = new MatchRules(8);
+            r.Devoured();
+            r.TimeUp(2);                                  // two never left her pouch
             Assert.AreEqual(MatchSide.Evil, r.Winner);
+            StringAssert.Contains("didn't hide 2", r.Reason);
         }
 
         [Test]
@@ -98,16 +124,12 @@ namespace GameJamTests
         // ---------------------------------------------------------------- offerings
 
         [Test]
-        public void Offering_BlessesAfterBloomTime()
+        public void Offering_NeverExpires()
         {
             var o = New("Offering").AddComponent<Offering>();
-            o.bloomTime = 2f;
-            int blessed = 0; o.Blessed += _ => blessed++;
-            for (int i = 0; i < 15; i++) o.Tick(0.1f);
-            Assert.AreEqual(0, blessed);
-            for (int i = 0; i < 10; i++) o.Tick(0.1f);
-            Assert.AreEqual(1, blessed);
-            Assert.IsTrue(o == null || o.Done);
+            for (int i = 0; i < 6000; i++) o.Tick(0.1f);            // ten minutes on the ground
+            Assert.IsTrue(o, "still there");
+            Assert.IsFalse(o.Done);
         }
 
         [Test]
@@ -133,14 +155,15 @@ namespace GameJamTests
 
         // ---------------------------------------------------------------- dropping
 
-        AngelDropper Dropper(int maxActive, float cooldown)
+        AngelDropper Dropper(int pouch, float cooldown)
         {
             var template = New("Template").AddComponent<Offering>();
             var d = New("Angel").AddComponent<AngelDropper>();
             d.offeringPrefab = template;
             d.container = New("Offerings").transform;
-            d.maxActive = maxActive;
+            d.pouchSize = pouch;
             d.cooldown = cooldown;
+            d.Refill();
             return d;
         }
 
@@ -151,16 +174,21 @@ namespace GameJamTests
             Assert.NotNull(d.TryDrop(5f));
             Assert.IsNull(d.TryDrop(5.5f), "still cooling down");
             Assert.NotNull(d.TryDrop(6.1f));
-            Assert.AreEqual(2, d.ActiveCount);
+            Assert.AreEqual(2, d.PlacedCount);
+            Assert.AreEqual(8, d.Carried);
         }
 
         [Test]
-        public void Drop_RespectsMaxActive()
+        public void Drop_StopsWhenThePouchIsEmpty()
         {
             var d = Dropper(2, 0f);
             d.TryDrop(1f); d.TryDrop(2f);
-            Assert.IsNull(d.TryDrop(3f), "only two on the field at once");
+            Assert.AreEqual(0, d.Carried);
+            Assert.IsNull(d.TryDrop(3f), "she only has two");
+            d.Refill();
+            Assert.AreEqual(2, d.Carried, "a new round fills the pouch");
         }
+
 
         [Test]
         public void Drop_PutsTheOfferingOnTheGroundNearTheAngel()

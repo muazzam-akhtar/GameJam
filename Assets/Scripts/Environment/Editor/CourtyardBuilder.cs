@@ -31,7 +31,7 @@ public static class CourtyardBuilder
     /// The layout is authored on a small grid and spread out by <see cref="Scale"/> around the arena centre:
     /// positions grow, stone sizes and heights don't, so the map gets bigger without the stones getting chunkier.
     /// </summary>
-    public const float Scale = 1.6f;
+    public const float Scale = 4.0f;
     static float LX(float x) => 56f + (x - 56f) * Scale;
     static float LZ(float z) => 70f + (z - 70f) * Scale;
     static Vector2 L(float x, float z) => new Vector2(LX(x), LZ(z));
@@ -63,7 +63,36 @@ public static class CourtyardBuilder
     static readonly Vector2 RuinArch = L(112, 70);
     const float RuinGap = 32f, RuinPillar = 11f, RuinPillarHeight = 24f;
 
-    static readonly Vector2[] CoverClusters = { L(-20, 92), L(58, 96), L(140, 20), L(76, 56), L(-22, 56), L(50, 8) };
+    static readonly Vector2[] CoverClusters =
+    {
+        L(-20, 92), L(58, 96), L(140, 20), L(76, 56), L(50, 8),
+        L(28, 2), L(66, 30), L(100, 46), L(122, 97), L(-10, 76), L(-26, 104), L(84, 84), L(42, 62), L(-28, 16),
+    };
+
+    /// <summary>
+    /// Small rock caves to hide offerings in: centre (x, z) and the way the mouth faces (yaw; 0 = mouth toward -z).
+    /// Inside, the player's own camera sees the roof cut away (<see cref="Hideout"/>).
+    /// </summary>
+    static readonly (Vector2 pos, float yaw)[] Caves =
+    {
+        (L(-21, 58), -90f),     // west wall, mouth east
+        (L(38, 28), 0f),        // front middle, mouth toward the front wall
+        (L(130, 44), 90f),      // east wall, mouth west
+        (L(36, 100), 0f),       // under the aqueduct, mouth south
+        (L(92, 10), 180f),      // front right, mouth north
+    };
+    const float CaveHalfWidth = 30f, CaveHalfDepth = 26f, CaveHeight = 44f, CaveWall = 12f, CaveMouth = 19f;
+    public const string CaveRoofLayer = "CaveRoof";
+
+    /// <summary>Clumps of big ferns: soft cover to tuck an offering into.</summary>
+    static readonly Vector2[] Thickets = { L(-26, 78), L(54, 46), L(118, 4), L(100, 92), L(138, 88), L(4, 56), L(104, 64), L(-30, 128) };
+
+    /// <summary>Roofless ruins: three low broken walls round a corner to tuck an offering behind (centre, open side yaw).</summary>
+    static readonly (Vector2 pos, float yaw)[] Nooks =
+    {
+        (L(10, 0), 200f), (L(70, 8), 160f), (L(70, 112), 0f), (L(112, 24), 120f), (L(60, 72), 300f), (L(26, 48), 240f),
+    };
+    const float NookHalfWidth = 24f, NookHalfDepth = 19f;
 
     /// <summary>Stream centre line (x, z), from inside the aqueduct tunnel to the culvert in the front wall.</summary>
     static readonly Vector2[] StreamLine =
@@ -123,6 +152,11 @@ public static class CourtyardBuilder
             var cloth = new MeshBuilder();
             var trim = new MeshBuilder();       // banner rods, brackets, caps
             var colliders = new GameObject("Colliders").transform; colliders.SetParent(root.transform, false);
+            // a big map means a lot of stone: lighter meshes keep the generated assets small enough for git
+            EnvMeshKit.Coarseness = 1.6f;
+            EnvMeshKit.LowDetail.Clear();
+            EnvMeshKit.LowDetail.Add(paving);
+            EnvMeshKit.LowDetail.Add(moss);
 
             BuildBorder(stone, moss, colliders, rng);
             BuildAqueduct(stone, paving, moss, cracks, cloth, trim, colliders, rng);
@@ -130,6 +164,9 @@ public static class CourtyardBuilder
             BuildStairs(stone, colliders, rng);
             BuildRuinArch(stone, moss, cracks, colliders, rng);
             BuildCover(stone, moss, colliders, rng);
+            var crystals = new MeshBuilder();
+            BuildCaves(root, stone, moss, crystals, colliders, mats, rng);
+            BuildNooks(stone, moss, colliders, rng);
             BuildPaving(paving, cracks, rng);
             var streamPath = StreamPath();
             BuildStreamStones(stone, paving, moss, streamPath, rng);
@@ -138,6 +175,7 @@ public static class CourtyardBuilder
             AddPart(root, "Paving", paving.Build("Courtyard_Paving"), mats["Paving"]);
             AddPart(root, "Moss", moss.Build("Courtyard_Moss"), mats["Moss"]);
             AddPart(root, "Cracks", cracks.Build("Courtyard_Cracks"), mats["Crack"], mats["CrackGlow"], castShadows: false);
+            AddPart(root, "Crystals", crystals.Build("Courtyard_Crystals"), mats["Crystal"], castShadows: false);
             AddPart(root, "Banners", cloth.Build("Courtyard_Banners"), mats["Cloth"]);
             AddPart(root, "BannerTrim", trim.Build("Courtyard_BannerTrim"), mats["Trim"]);
             AddPart(root, "Ground", BuildGround(streamPath), mats["Ground"], castShadows: false);
@@ -147,7 +185,7 @@ public static class CourtyardBuilder
             ground.transform.SetParent(colliders, false);
             var gb = ground.AddComponent<BoxCollider>();
             gb.center = new Vector3(56f, -5f, 80f);
-            gb.size = new Vector3(900f, 10f, 900f);
+            gb.size = new Vector3(2400f, 10f, 2400f);
 
             BuildVegetation(root.transform, rng);
 
@@ -157,6 +195,8 @@ public static class CourtyardBuilder
         }
         finally
         {
+            EnvMeshKit.Coarseness = 1f;
+            EnvMeshKit.LowDetail.Clear();
             EditorSceneManager.ClosePreviewScene(scene);
         }
     }
@@ -181,9 +221,9 @@ public static class CourtyardBuilder
             // collider: one tall slab per side
             var col = new GameObject($"Wall_{s}").transform;
             col.SetParent(colliders, false);
-            col.position = start + dir * (len * 0.5f) + outward * (thickness * 0.5f) + Vector3.up * 30f;
+            col.position = start + dir * (len * 0.5f) + outward * (thickness * 0.5f) + Vector3.up * 8f;   // as tall as it looks: the camera sees over it
             col.rotation = rot;
-            col.gameObject.AddComponent<BoxCollider>().size = new Vector3(len + thickness * 1.6f, 60f, thickness + 2f);
+            col.gameObject.AddComponent<BoxCollider>().size = new Vector3(len + thickness * 1.6f, 16f, thickness + 2f);
 
             float t = -thickness * 0.5f;                                // start a little past the corner so corners close
             while (t < len + thickness * 0.3f)
@@ -223,7 +263,7 @@ public static class CourtyardBuilder
     static void BuildAqueduct(MeshBuilder stone, MeshBuilder paving, MeshBuilder moss, MeshBuilder cracks, MeshBuilder cloth, MeshBuilder trim, Transform colliders, Random rng)
     {
         var r = AqueductRect;
-        AddBoxCollider(colliders, "Aqueduct", new Vector3(r.center.x, 30f, r.center.y), new Vector3(r.width, 60f, r.height));
+        AddBoxCollider(colliders, "Aqueduct", new Vector3(r.center.x, (AqueductTop + 8f) * 0.5f, r.center.y), new Vector3(r.width, AqueductTop + 8f, r.height));
 
         // front face: three courses; the broken right end steps down
         float[] courseTop = { 8f, 17f, AqueductTop };
@@ -252,12 +292,12 @@ public static class CourtyardBuilder
 
         // body behind the face (only its top edge shows) and the deck slabs
         Block(stone, new Vector3((r.xMin + r.xMax - 12f) * 0.5f, AqueductTop * 0.5f - 0.5f, (AqueductFace + 11f + r.yMax) * 0.5f), new Vector3(r.xMax - 12f - r.xMin, AqueductTop - 1f, r.yMax - AqueductFace - 11f), Quaternion.identity, Pick(StonePalette, rng), rng, 0.05f);
-        for (float x = r.xMin + 6f; x < r.xMax - 12f; x += 12.5f)
-            for (float z = AqueductFace + 6f; z < r.yMax; z += 12.5f)
+        for (float x = r.xMin + 6f; x < r.xMax - 12f; x += 16f)
+            for (float z = AqueductFace + 6f; z < r.yMax; z += 16f)
             {
                 if (rng.NextDouble() < 0.08) continue;                   // missing slab
                 var c = new Vector3(x + (float)rng.NextDouble(), AqueductTop + 0.6f + (float)rng.NextDouble() * 0.5f, z + (float)rng.NextDouble());
-                Block(paving, c, new Vector3(11.8f, 2f, 11.8f), Quaternion.Euler((float)rng.NextDouble() * 2 - 1, (float)rng.NextDouble() * 6 - 3, (float)rng.NextDouble() * 2 - 1), Pick(PavingPalette, rng), rng, 0.12f);
+                Block(paving, c, new Vector3(15.3f, 2f, 15.3f), Quaternion.Euler((float)rng.NextDouble() * 2 - 1, (float)rng.NextDouble() * 6 - 3, (float)rng.NextDouble() * 2 - 1), Pick(PavingPalette, rng), rng, 0.12f);
                 if (rng.NextDouble() < 0.18) Moss(moss, c + Vector3.up * 1f, 11f, 11f, rng);
             }
         // parapet along the front edge, chunky end blocks
@@ -303,7 +343,7 @@ public static class CourtyardBuilder
     static void BuildTerrace(MeshBuilder stone, MeshBuilder paving, MeshBuilder moss, MeshBuilder cracks, MeshBuilder cloth, MeshBuilder trim, Transform colliders, Random rng)
     {
         var r = TerraceRect;
-        AddBoxCollider(colliders, "Terrace", new Vector3(r.center.x, 30f, r.center.y), new Vector3(r.width, 60f, r.height));
+        AddBoxCollider(colliders, "Terrace", new Vector3(r.center.x, (TerraceTop + 6f) * 0.5f, r.center.y), new Vector3(r.width, TerraceTop + 6f, r.height));
         float[] tops = { 7f, 14.5f, TerraceTop };
         for (int k = 0; k < 3; k++)
         {
@@ -312,11 +352,11 @@ public static class CourtyardBuilder
             LayCourseZ(stone, r.yMin + 10f, r.yMax, y0, tops[k], r.xMin, rng);                              // left face
         }
         Block(stone, new Vector3(r.center.x + 5f, TerraceTop * 0.5f - 0.5f, r.center.y + 5f), new Vector3(r.width - 10f, TerraceTop - 1f, r.height - 10f), Quaternion.identity, Pick(StonePalette, rng), rng, 0.05f);
-        for (float x = r.xMin + 6f; x < r.xMax; x += 12.5f)
-            for (float z = r.yMin + 6f; z < r.yMax; z += 12.5f)
+        for (float x = r.xMin + 6f; x < r.xMax; x += 16f)
+            for (float z = r.yMin + 6f; z < r.yMax; z += 16f)
             {
                 var c = new Vector3(x + (float)rng.NextDouble(), TerraceTop + 0.6f + (float)rng.NextDouble() * 0.4f, z + (float)rng.NextDouble());
-                Block(paving, c, new Vector3(11.8f, 2f, 11.8f), Quaternion.Euler(0, (float)rng.NextDouble() * 6 - 3, 0), Pick(PavingPalette, rng), rng, 0.12f);
+                Block(paving, c, new Vector3(15.3f, 2f, 15.3f), Quaternion.Euler(0, (float)rng.NextDouble() * 6 - 3, 0), Pick(PavingPalette, rng), rng, 0.12f);
                 if (rng.NextDouble() < 0.14) Moss(moss, c + Vector3.up, 10f, 10f, rng);
             }
         // parapet with gaps
@@ -354,7 +394,7 @@ public static class CourtyardBuilder
     static void BuildStairs(MeshBuilder stone, Transform colliders, Random rng)
     {
         var r = StairsRect;
-        AddBoxCollider(colliders, "Stairs", new Vector3(r.center.x, 30f, r.center.y), new Vector3(r.width, 60f, r.height));
+        AddBoxCollider(colliders, "Stairs", new Vector3(r.center.x, (TerraceTop + 6f) * 0.5f, r.center.y), new Vector3(r.width, TerraceTop + 6f, r.height));
         const int steps = 8;
         float run = (r.xMax - r.xMin) / steps, rise = TerraceTop / steps;
         for (int k = 0; k < steps; k++)
@@ -418,25 +458,224 @@ public static class CourtyardBuilder
             Block(stone, center + new Vector3(-3f, 7f, 0f), new Vector3(13f, 14f, 13f), Quaternion.Euler(0, (float)rng.NextDouble() * 20 - 10, 0), Pick(StonePalette, rng), rng);
             Block(stone, center + new Vector3(7f, 5f, 4f), new Vector3(9f, 10f, 10f), Quaternion.Euler(0, (float)rng.NextDouble() * 30, 0), Pick(StonePalette, rng), rng);
             if (rng.NextDouble() < 0.7) Moss(moss, center + new Vector3(-3f, 14f, 0f), 11f, 11f, rng);
-            AddBoxCollider(colliders, $"Cover_{c.x}_{c.y}", center + Vector3.up * 30f, new Vector3(24f, 60f, 20f));
+            AddBoxCollider(colliders, $"Cover_{c.x}_{c.y}", center + Vector3.up * 8f, new Vector3(24f, 16f, 20f));
         }
+    }
+
+    // ------------------------------------------------------------------ caves (hiding spots)
+
+    static readonly Color[] RockPalette =
+    {
+        new Color(0.62f, 0.52f, 0.56f), new Color(0.56f, 0.47f, 0.52f), new Color(0.68f, 0.57f, 0.58f), new Color(0.52f, 0.45f, 0.50f),
+    };
+
+    /// <summary>
+    /// A rock cave per <see cref="Caves"/>: boulder walls on three sides with a mouth in the fourth, slab roof with
+    /// rocks and moss on top (its own renderers, cut away per camera by <see cref="Hideout"/>), glowing crystals and a
+    /// soft light inside, colliders for the walls and a roof collider on the CaveRoof layer (camera only).
+    /// </summary>
+    static void BuildCaves(GameObject root, MeshBuilder stone, MeshBuilder moss, MeshBuilder crystals, Transform colliders, Dictionary<string, Material> mats, Random rng)
+    {
+        int roofLayer = LayerMask.NameToLayer(CaveRoofLayer);
+        var holder = new GameObject("Caves").transform;
+        holder.SetParent(root.transform, false);
+        float hw = CaveHalfWidth, hd = CaveHalfDepth, h = CaveHeight, t = CaveWall;
+        float R() => (float)rng.NextDouble();
+        Color Rock() => Pick(RockPalette, rng);
+
+        for (int i = 0; i < Caves.Length; i++)
+        {
+            var (pos, yaw) = Caves[i];
+            var origin = new Vector3(pos.x, 0f, pos.y);
+            var rot = Quaternion.Euler(0f, yaw, 0f);
+            Vector3 W(float x, float y, float z) => origin + rot * new Vector3(x, y, z);
+            var cave = new GameObject($"Cave_{i}");
+            cave.transform.SetParent(holder, false);
+            cave.transform.SetPositionAndRotation(origin, rot);
+
+            // walls: two courses of boulders along each side, the top course ragged
+            void Wall(Vector2 a, Vector2 b)
+            {
+                var d = b - a; float len = d.magnitude; var dir = d / len;
+                var face = rot * Quaternion.LookRotation(new Vector3(dir.x, 0f, dir.y));
+                float s = -2f;
+                while (s < len)
+                {
+                    float w = Mathf.Lerp(13f, 19f, R());
+                    var c = a + dir * (s + w * 0.5f);
+                    float low = Mathf.Lerp(20f, 26f, R());
+                    Block(stone, W(c.x, low * 0.5f, c.y), new Vector3(t + R() * 3f, low, w + 2f), face * Quaternion.Euler(0, R() * 6f - 3f, 0), Rock(), rng, 0.38f, 0.07f);
+                    float top = h + 5f - low + R() * 5f;
+                    Block(stone, W(c.x + R() * 2f - 1f, low + top * 0.5f - 1.5f, c.y + R() * 2f - 1f), new Vector3(t * (0.85f + R() * 0.2f), top, w * 0.95f), face * Quaternion.Euler(R() * 6f - 3f, R() * 10f - 5f, R() * 6f - 3f), Rock(), rng, 0.45f, 0.08f);
+                    s += w;
+                }
+            }
+            float ox = hw + t * 0.5f, oz = hd + t * 0.5f;
+            Wall(new Vector2(-ox, oz), new Vector2(ox, oz));                    // back
+            Wall(new Vector2(-ox, -oz), new Vector2(-ox, oz));                  // left
+            Wall(new Vector2(ox, -oz), new Vector2(ox, oz));                    // right
+            Wall(new Vector2(-ox, -oz), new Vector2(-CaveMouth - 2f, -oz));     // front, either side of the mouth
+            Wall(new Vector2(CaveMouth + 2f, -oz), new Vector2(ox, -oz));
+            // chunky jamb boulders framing the mouth
+            foreach (var sx in new[] { -1f, 1f })
+                Block(stone, W(sx * (CaveMouth + 4f), h * 0.5f, -oz - 2f), new Vector3(12f, h + 6f, 14f), rot * Quaternion.Euler(0, sx * (8f + R() * 6f), sx * 3f), Rock(), rng, 0.5f, 0.09f);
+            // rubble spilling out of the mouth
+            for (int k = 0; k < 4; k++)
+                Block(stone, W((R() * 2f - 1f) * CaveMouth, 1.6f, -oz - 6f - R() * 14f), new Vector3(3f + R() * 4f, 2.5f + R() * 2f, 3f + R() * 4f), Quaternion.Euler(R() * 20f, R() * 360f, R() * 20f), Rock(), rng, 0.5f, 0.1f);
+
+            // roof: its own meshes so a camera can cut it away
+            var roofStone = new MeshBuilder();
+            var roofMoss = new MeshBuilder();
+            EnvMeshKit.LowDetail.Add(roofMoss);
+            float span = (2f * hd + 2f * t) / 3f;
+            for (int k = 0; k < 3; k++)
+            {
+                float z = -hd - t + span * (k + 0.5f);
+                Block(roofStone, W(R() * 2f - 1f, h + 4f + R() * 1.5f, z), new Vector3(2f * hw + 2f * t + R() * 6f, 9f + R() * 3f, span + 5f), rot * Quaternion.Euler(R() * 4f - 2f, R() * 6f - 3f, R() * 4f - 2f), Rock(), rng, 0.3f, 0.06f);
+            }
+            Block(roofStone, W(0f, h + 1f, -oz - 2f), new Vector3(2f * CaveMouth + 16f, 8f, 13f), rot * Quaternion.Euler(0, R() * 4f - 2f, R() * 3f - 1.5f), Rock(), rng, 0.35f, 0.07f);   // lintel over the mouth
+            for (int k = 0; k < 4; k++)
+            {
+                var c = W((R() * 2f - 1f) * hw * 0.8f, h + 11f + R() * 3f, (R() * 2f - 1f) * hd * 0.8f);
+                float sz = 10f + R() * 10f;
+                Block(roofStone, c, new Vector3(sz, 7f + R() * 6f, sz * (0.8f + R() * 0.4f)), Quaternion.Euler(R() * 14f - 7f, R() * 360f, R() * 14f - 7f), Rock(), rng, 0.55f, 0.1f);
+                Moss(roofMoss, c + Vector3.up * 4f, sz * 0.8f, sz * 0.7f, rng);
+            }
+            for (int k = 0; k < 3; k++) Moss(roofMoss, W((R() * 2f - 1f) * hw, h + 9f, (R() * 2f - 1f) * hd), 16f, 14f, rng);
+            var roofParts = new List<Renderer>
+            {
+                AddCavePart(cave, $"Roof", roofStone.Build($"Courtyard_Cave{i}_Roof"), mats["Stone"]),
+                AddCavePart(cave, $"RoofMoss", roofMoss.Build($"Courtyard_Cave{i}_RoofMoss"), mats["Moss"]),
+            };
+
+            // crystals in the back corners and along the walls, and a soft teal light
+            for (int k = 0; k < 7; k++)
+            {
+                bool back = k < 4;
+                float x = back ? (k % 2 == 0 ? -1f : 1f) * (hw - 4f - R() * 6f) : (k % 2 == 0 ? -1f : 1f) * (hw - 2f);
+                float z = back ? hd - 3f - R() * 4f : (R() * 2f - 1f) * hd * 0.6f;
+                for (int c = 0; c < 3; c++)
+                {
+                    float len = 7f + R() * 9f;
+                    var tilt = Quaternion.Euler(R() * 50f - 25f, R() * 360f, R() * 50f - 25f);
+                    Block(crystals, W(x + R() * 4f - 2f, len * 0.4f, z + R() * 4f - 2f), new Vector3(2.2f + R(), len, 2.2f + R()), rot * tilt, Lin(new Color(0.5f, 0.9f, 1f)), rng, 0.2f, 0.02f);
+                }
+            }
+            var lightGo = new GameObject("Glow");
+            lightGo.transform.SetParent(cave.transform, false);
+            lightGo.transform.localPosition = new Vector3(0f, h * 0.55f, hd * 0.35f);
+            var glow = lightGo.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(0.45f, 0.85f, 1f);
+            glow.range = 95f;
+            glow.intensity = 1100f;                                             // URP falls off with distance squared
+            glow.shadows = LightShadows.None;
+
+            // colliders: walls block players and cameras, the roof only cameras
+            // (under the cave itself, so its camera knows which walls to look over from inside)
+            AddRotatedCollider(cave.transform, $"Cave{i}_Back", W(0f, h * 0.5f, oz), new Vector3(2f * hw + 2f * t, h, t), rot);
+            AddRotatedCollider(cave.transform, $"Cave{i}_Left", W(-ox, h * 0.5f, 0f), new Vector3(t, h, 2f * hd + 2f * t), rot);
+            AddRotatedCollider(cave.transform, $"Cave{i}_Right", W(ox, h * 0.5f, 0f), new Vector3(t, h, 2f * hd + 2f * t), rot);
+            float frontW = hw + t - CaveMouth;
+            foreach (var sx in new[] { -1f, 1f })
+                AddRotatedCollider(cave.transform, $"Cave{i}_Front{(sx < 0 ? "L" : "R")}", W(sx * (CaveMouth + frontW * 0.5f), h * 0.5f, -oz), new Vector3(frontW, h, t), rot);
+            var roofCol = AddRotatedCollider(cave.transform, "RoofCollider", W(0f, h + 8f, 0f), new Vector3(2f * hw + 2f * t, 16f, 2f * hd + 2f * t), rot);
+            if (roofLayer >= 0) roofCol.layer = roofLayer;
+
+            var hideout = cave.AddComponent<Hideout>();
+            hideout.center = new Vector3(0f, h * 0.5f, -t * 0.5f - 2f);
+            hideout.size = new Vector3(2f * hw, h, 2f * hd + t + 6f);
+            hideout.roof = roofParts.ToArray();
+        }
+    }
+
+    /// <summary>Three ragged walls of stacked blocks (one with a gap knocked out of it), moss on top, a collider per wall.</summary>
+    static void BuildNooks(MeshBuilder stone, MeshBuilder moss, Transform colliders, Random rng)
+    {
+        float R() => (float)rng.NextDouble();
+        for (int i = 0; i < Nooks.Length; i++)
+        {
+            var (pos, yaw) = Nooks[i];
+            var origin = new Vector3(pos.x, 0f, pos.y);
+            var rot = Quaternion.Euler(0f, yaw, 0f);
+            Vector3 W(float x, float y, float z) => origin + rot * new Vector3(x, y, z);
+            float hw = NookHalfWidth, hd = NookHalfDepth, t = 8f;
+            int broken = rng.Next(3);                                            // which wall has a gap
+            var walls = new[]
+            {
+                (a: new Vector2(-hw, hd), b: new Vector2(hw, hd)),                 // back
+                (a: new Vector2(-hw, -hd), b: new Vector2(-hw, hd)),               // left
+                (a: new Vector2(hw, -hd), b: new Vector2(hw, hd)),                 // right
+            };
+            for (int w = 0; w < walls.Length; w++)
+            {
+                var (a, b) = walls[w];
+                var d = b - a; float len = d.magnitude; var dir = d / len;
+                var face = rot * Quaternion.LookRotation(new Vector3(dir.x, 0f, dir.y));
+                float s = -t * 0.5f;
+                float gapAt = w == broken ? len * (0.35f + R() * 0.3f) : -999f;
+                while (s < len + t * 0.4f)
+                {
+                    float bw = Mathf.Lerp(9f, 14f, R());
+                    float mid = s + bw * 0.5f;
+                    s += bw + 0.4f;
+                    if (Mathf.Abs(mid - gapAt) < 7f) continue;                    // knocked out
+                    var c = a + dir * mid;
+                    float hgt = Mathf.Lerp(13f, 19f, R()) * (w == 0 ? 1f : Mathf.Lerp(0.7f, 1f, mid / len));   // walls slope down toward the open side
+                    Block(stone, W(c.x, hgt * 0.5f, c.y), new Vector3(t, hgt, bw), face * Quaternion.Euler(0, R() * 4f - 2f, R() * 3f - 1.5f), Pick(StonePalette, rng), rng);
+                    if (R() < 0.25f) Moss(moss, W(c.x, hgt, c.y), t, bw, rng);
+                }
+                var cm = (a + b) * 0.5f;
+                AddRotatedCollider(colliders, $"Nook{i}_{w}", W(cm.x, 10f, cm.y), new Vector3(t + 1f, 20f, len + t), face);
+                if (w == broken)                                                   // rubble from the gap
+                    for (int k = 0; k < 3; k++)
+                    {
+                        var g = a + dir * gapAt;
+                        Block(stone, W(g.x + R() * 10f - 5f, 2f, g.y + R() * 10f - 5f), new Vector3(4f + R() * 4f, 3f + R() * 2f, 4f + R() * 4f), Quaternion.Euler(R() * 30f, R() * 360f, R() * 30f), Pick(StonePalette, rng), rng);
+                    }
+            }
+        }
+    }
+
+    static Renderer AddCavePart(GameObject cave, string name, Mesh mesh, Material mat)
+    {
+        var path = $"{MeshDir}/{mesh.name}.asset";
+        if (AssetDatabase.LoadAssetAtPath<Mesh>(path)) AssetDatabase.DeleteAsset(path);
+        AssetDatabase.CreateAsset(mesh, path);
+        var go = new GameObject(name);
+        go.transform.SetParent(cave.transform, false);
+        go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);   // mesh is in world space
+        go.AddComponent<MeshFilter>().sharedMesh = mesh;
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = mat;
+        mr.shadowCastingMode = ShadowCastingMode.On;
+        return mr;                                                              // not static: toggled per camera
+    }
+
+    static GameObject AddRotatedCollider(Transform parent, string name, Vector3 center, Vector3 size, Quaternion rot)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.SetPositionAndRotation(center, rot);
+        go.AddComponent<BoxCollider>().size = size;
+        return go;
     }
 
     // ------------------------------------------------------------------ paving (sanctuary courtyard)
 
     static void BuildPaving(MeshBuilder paving, MeshBuilder cracks, Random rng)
     {
-        const float cell = 10f;
+        const float cell = 13f;                                                // bigger slabs for the bigger courtyard
         for (float x = LX(58f); x < LX(142f); x += cell)
             for (float z = LZ(-2f); z < LZ(106f); z += cell)
             {
                 var p = new Vector2(x + cell * 0.5f, z + cell * 0.5f);
-                if (!InsideArena(p, 6f) || InsideStructure(p, 4f) || NearCover(p, 16f) || NearRuinPillar(p, 9f)) continue;
+                if (!InsideArena(p, 6f) || InsideStructure(p, 4f) || NearCover(p, 16f) || NearRuinPillar(p, 9f) || NearCave(p, 8f)) continue;
                 float mask = EnvMeshKit.Noise(new Vector3(p.x / 34f, 0, p.y / 34f), 91);
                 float near = Mathf.Max(1f - Vector2.Distance(p, RuinArch) / (40f * Scale), p.y > LZ(90f) ? 0.6f : 0f);
                 float edge = Mathf.InverseLerp(LX(58f), LX(80f), p.x);                  // fades out toward the stream half
                 if (mask * 0.8f + near * 0.6f + 0.15f < 0.62f || rng.NextDouble() > edge + 0.2f) continue;
-                float w = Mathf.Lerp(8.4f, 9.4f, (float)rng.NextDouble());
+                float w = Mathf.Lerp(11f, 12.2f, (float)rng.NextDouble());
                 var c = new Vector3(p.x + (float)rng.NextDouble() - 0.5f, 0.1f + (float)rng.NextDouble() * 0.25f, p.y + (float)rng.NextDouble() - 0.5f);
                 if (rng.NextDouble() < 0.12)
                 {   // a broken slab: two halves
@@ -449,7 +688,7 @@ public static class CourtyardBuilder
         for (int i = 0; i < 22; i++)
         {
             var p = new Vector2(LX(24f) + (float)rng.NextDouble() * 34f * Scale, LZ(100f) + (float)rng.NextDouble() * 14f * Scale);
-            if (InsideStructure(p, 3f) || DistanceToStream(p) < 12f) continue;
+            if (InsideStructure(p, 3f) || DistanceToStream(p) < 12f || NearCave(p, 6f)) continue;
             Block(paving, new Vector3(p.x, 0.2f, p.y), new Vector3(8.6f, 1f, 8.6f), Quaternion.Euler(0, (float)rng.NextDouble() * 20 - 10, 0), Pick(PavingPalette, rng), rng, 0.15f);
         }
     }
@@ -491,6 +730,7 @@ public static class CourtyardBuilder
     {
         var grass = Lin(Grass); var dark = Lin(GrassDark); var light = Lin(GrassLight); var forest = Lin(ForestFloor); var dirt = Lin(Dirt);
         var cliff = Lin(new Color(0.40f, 0.32f, 0.28f));
+        var caveFloor = Lin(new Color(0.36f, 0.30f, 0.30f));
         float Height(float x, float z)
         {
             var p = new Vector2(x, z);
@@ -523,10 +763,12 @@ public static class CourtyardBuilder
             float halfW = StreamWidth(z) * 0.5f;
             if (ds < halfW + 5f) c = Color.Lerp(dirt, c, Mathf.SmoothStep(0f, 1f, (ds - halfW + 1f) / 6f));
             if (z < CliffZ) c = Color.Lerp(c, cliff, Mathf.InverseLerp(CliffZ, CliffZ - 8f, z));
+            float cave = CaveFloor(p);                                        // trodden dark earth inside the caves
+            if (cave > 0f) c = Color.Lerp(c, caveFloor * (0.85f + 0.3f * n2), cave);
             c.a = 1f;
             return c;
         }
-        return EnvMeshKit.Ground(new Vector2(LX(-240f), LZ(-60f)), new Vector2(LX(340f), LZ(360f)), 5f, Height, Paint, "Courtyard_Ground");
+        return EnvMeshKit.Ground(new Vector2(LX(-34f) - 300f, CliffZ - 90f), new Vector2(LX(146f) + 300f, LZ(152f) + 300f), 8f, Height, Paint, "Courtyard_Ground");
     }
 
     // ------------------------------------------------------------------ water
@@ -584,12 +826,12 @@ public static class CourtyardBuilder
         }
 
         // forest ring outside the walls
-        for (float x = LX(-230f); x < LX(330f); x += 30f)
-            for (float z = LZ(-10f); z < LZ(350f); z += 30f)
+        for (float x = LX(-34f) - 280f; x < LX(146f) + 280f; x += 32f)
+            for (float z = LZ(-10f); z < LZ(152f) + 280f; z += 32f)
             {
                 var p = new Vector2(x + (float)(rng.NextDouble() * 16 - 8), z + (float)(rng.NextDouble() * 16 - 8));
                 float d = ArenaDistance(p);
-                if (d < 22f || rng.NextDouble() < 0.18) continue;
+                if (d < 22f || d > 270f || rng.NextDouble() < 0.18) continue;
                 if (AqueductRect.Contains(p) || TerraceRect.Contains(p)) continue;
                 float near = Mathf.InverseLerp(22f, 70f, d);                 // smaller trees right next to the arena
                 float y = GroundHeightApprox(p);
@@ -603,10 +845,10 @@ public static class CourtyardBuilder
             }
 
         // inside: ferns and plantain along the walls and structures, dandelions and mushrooms dotted around
-        for (int i = 0; i < 640; i++)
+        for (int i = 0; i < 2600; i++)
         {
             var p = new Vector2(Mathf.Lerp(LX(-32f), LX(144f), (float)rng.NextDouble()), Mathf.Lerp(LZ(-6f), LZ(166f), (float)rng.NextDouble()));
-            if (!InsideArena(p, 2f) || InsideStructure(p, 1f) || DistanceToStream(p) < StreamWidth(p.y) * 0.5f + 2f || NearCover(p, 9f) || NearRuinPillar(p, 8f)) continue;
+            if (!InsideArena(p, 2f) || InsideStructure(p, 1f) || DistanceToStream(p) < StreamWidth(p.y) * 0.5f + 2f || NearCover(p, 9f) || NearRuinPillar(p, 8f) || NearCave(p, 4f)) continue;
             float wall = -ArenaDistance(p);                                   // distance to the wall
             float structure = DistanceToStructures(p);
             bool edge = wall < 9f || structure < 8f || NearCover(p, 15f);
@@ -620,8 +862,20 @@ public static class CourtyardBuilder
             else if (!paved && rng.NextDouble() < 0.16) Place(dandelion, plants, new Vector3(p.x, 0, p.y), 22f + (float)rng.NextDouble() * 8f);
             else if (structure < 20f && rng.NextDouble() < 0.12) Place(mushroom, plants, new Vector3(p.x, 0, p.y), 16f + (float)rng.NextDouble() * 8f);
         }
+        // thickets: big ferns and plantain packed together (an offering can hide in the leaves)
+        foreach (var t in Thickets)
+        {
+            int n = 9 + rng.Next(5);
+            for (int k = 0; k < n; k++)
+            {
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f, r = Mathf.Sqrt((float)rng.NextDouble()) * 24f;
+                var q = new Vector3(t.x + Mathf.Cos(a) * r, 0f, t.y + Mathf.Sin(a) * r);
+                if (!InsideArena(new Vector2(q.x, q.z), 4f) || NearCave(new Vector2(q.x, q.z), 6f)) continue;
+                Place(rng.NextDouble() < 0.7 ? fern : plantain, plants, q, 30f + (float)rng.NextDouble() * 14f);
+            }
+        }
         // on top of the aqueduct and terrace
-        for (int i = 0; i < 46; i++)
+        for (int i = 0; i < 130; i++)
         {
             bool aq = i % 2 == 0;
             var rect = aq ? Rect.MinMaxRect(AqueductRect.xMin + 4f, AqueductRect.yMin + 6f, AqueductRect.xMax - 14f, AqueductRect.yMax - 2f)
@@ -849,6 +1103,8 @@ public static class CourtyardBuilder
             ["Trim"] = Mat("Trim", env, m => { m.SetFloat("_MottleStrength", 0.05f); m.SetFloat("_RimStrength", 0.3f); }),
             ["Crack"] = Mat("Crack", env, m => { m.SetColor("_BaseColor", new Color(0.25f, 0.02f, 0.15f)); m.SetColor("_EmissionColor", new Color(3.4f, 0.35f, 2.0f)); m.SetFloat("_MottleStrength", 0f); m.SetFloat("_RimStrength", 0f); }),
             ["CrackGlow"] = Mat("CrackGlow", glow, m => { m.SetColor("_GlowColor", new Color(2.6f, 0.3f, 1.6f)); m.SetFloat("_GlowIntensity", 0.9f); }),
+            ["Crystal"] = Mat("Crystal", env, m => { m.SetColor("_BaseColor", new Color(0.1f, 0.35f, 0.42f)); m.SetColor("_EmissionColor", new Color(0.35f, 1.9f, 2.4f)); m.SetFloat("_MottleStrength", 0f); m.SetFloat("_RimStrength", 0.4f); }),
+            ["CrystalGlow"] = Mat("CrystalGlow", glow, m => { m.SetColor("_GlowColor", new Color(0.3f, 1.6f, 2.2f)); m.SetFloat("_GlowIntensity", 0.8f); }),
             ["Water"] = Mat("Water", water, m => { }),
         };
     }
@@ -884,7 +1140,32 @@ public static class CourtyardBuilder
         return Mathf.Min(D(AqueductRect), Mathf.Min(D(TerraceRect), D(StairsRect)));
     }
 
-    static bool NearCover(Vector2 p, float r) => CoverClusters.Any(c => Vector2.Distance(c, p) < r);
+    static bool NearCover(Vector2 p, float r) => CoverClusters.Any(c => Vector2.Distance(c, p) < r) || Nooks.Any(n => Vector2.Distance(n.pos, p) < r + NookHalfWidth);
+
+    /// <summary>Within <paramref name="pad"/> of a cave's outer rock (box test in the cave's own frame).</summary>
+    static bool NearCave(Vector2 p, float pad)
+    {
+        foreach (var (pos, yaw) in Caves)
+        {
+            var l = Quaternion.Euler(0f, -yaw, 0f) * new Vector3(p.x - pos.x, 0f, p.y - pos.y);
+            if (Mathf.Abs(l.x) < CaveHalfWidth + CaveWall + pad && Mathf.Abs(l.z) < CaveHalfDepth + CaveWall + pad) return true;
+        }
+        return false;
+    }
+
+    /// <summary>0..1: how far inside a cave's floor the point is (soft edge at the walls and the mouth).</summary>
+    static float CaveFloor(Vector2 p)
+    {
+        float best = 0f;
+        foreach (var (pos, yaw) in Caves)
+        {
+            var l = Quaternion.Euler(0f, -yaw, 0f) * new Vector3(p.x - pos.x, 0f, p.y - pos.y);
+            float dx = CaveHalfWidth + 4f - Mathf.Abs(l.x), dz = CaveHalfDepth + 4f - Mathf.Abs(l.z);
+            if (l.z < 0f) dz = CaveHalfDepth + 22f - Mathf.Abs(l.z);              // spills out of the mouth
+            best = Mathf.Max(best, Mathf.Clamp01(Mathf.Min(dx, dz) / 12f));
+        }
+        return best;
+    }
 
     static bool NearRuinPillar(Vector2 p, float r)
     {

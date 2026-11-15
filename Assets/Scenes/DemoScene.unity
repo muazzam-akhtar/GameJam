@@ -18,8 +18,8 @@ RenderSettings:
   m_FogColor: {r: 0.78, g: 0.82, b: 0.88, a: 1}
   m_FogMode: 1
   m_FogDensity: 0.01
-  m_LinearFogStart: 260
-  m_LinearFogEnd: 760
+  m_LinearFogStart: 420
+  m_LinearFogEnd: 1400
   m_AmbientSkyColor: {r: 0.86, g: 0.82, b: 0.94, a: 1}
   m_AmbientEquatorColor: {r: 0.76, g: 0.68, b: 0.72, a: 1}
   m_AmbientGroundColor: {r: 0.4, g: 0.36, b: 0.36, a: 1}
@@ -284,6 +284,21 @@ MonoBehaviour:
   lookAheadTime: 0.3
   maxLookAhead: 20
   lookAheadSmooth: 0.45
+  minPitch: 12
+  maxPitch: 68
+  avoidWalls: 1
+  wallRadius: 3
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  wallCheckHeight: 24
+  minDistance: 22
+  indoorPitch: 70
+  indoorDistance: 1
+  indoorBlend: 0.6
+  wallInTime: 0.08
+  wallOutTime: 0.45
+  roofLayer: CaveRoof
 --- !u!114 &313216530
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -394,7 +409,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &489785057
+--- !u!1001 &322779751
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -608,6 +623,21 @@ MonoBehaviour:
   lookAheadTime: 0.3
   maxLookAhead: 20
   lookAheadSmooth: 0.45
+  minPitch: 12
+  maxPitch: 68
+  avoidWalls: 1
+  wallRadius: 3
+  wallMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  wallCheckHeight: 24
+  minDistance: 22
+  indoorPitch: 70
+  indoorDistance: 1
+  indoorBlend: 0.6
+  wallInTime: 0.08
+  wallOutTime: 0.45
+  roofLayer: CaveRoof
 --- !u!1 &561720440
 GameObject:
   m_ObjectHideFlags: 0
@@ -736,7 +766,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4800149224401888205, guid: 990a583927892f8468b2a306b4babe1e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -49.600002
+      value: -208
       objectReference: {fileID: 0}
     - target: {fileID: 4800149224401888205, guid: 990a583927892f8468b2a306b4babe1e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -744,7 +774,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4800149224401888205, guid: 990a583927892f8468b2a306b4babe1e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 5.999999
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: 4800149224401888205, guid: 990a583927892f8468b2a306b4babe1e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1067,7 +1097,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5912783693741429076, guid: aaa415202f6f8e943b239ee5e3ee176e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 126.4
+      value: 232
       objectReference: {fileID: 0}
     - target: {fileID: 5912783693741429076, guid: aaa415202f6f8e943b239ee5e3ee176e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1075,7 +1105,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5912783693741429076, guid: aaa415202f6f8e943b239ee5e3ee176e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 5.999999
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: 5912783693741429076, guid: aaa415202f6f8e943b239ee5e3ee176e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1283,8 +1313,9 @@ MonoBehaviour:
   hud: {fileID: 1770527863}
   scoreManager: {fileID: 1577198903}
   offerings: {fileID: 561720441}
-  targetScore: 8
-  countdownTime: 3
+  offeringCount: 8
+  headStart: 15
+  huntTime: 120
   restartKey: 32
 --- !u!4 &1770527865
 Transform:
@@ -1395,7 +1426,7 @@ MonoBehaviour:
   offeringPrefab: {fileID: 4389508802285622205, guid: a6f8919d011f5a24d861e92fb983af49, type: 3}
   container: {fileID: 561720441}
   dropKey: 19
-  maxActive: 8
+  pouchSize: 8
   cooldown: 1.2
   dropBehind: 10
 --- !u!114 &5320544348038173912
@@ -1477,7 +1508,7 @@ PrefabInstance:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 489785057}
+  - {fileID: 322779751}
   - {fileID: 515766450}
   - {fileID: 109574803}
   - {fileID: 1059988599362050883}

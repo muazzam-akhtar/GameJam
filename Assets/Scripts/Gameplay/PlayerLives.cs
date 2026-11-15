@@ -18,6 +18,8 @@ public class PlayerLives : MonoBehaviour
     public int MaxLives => maxLives;
     public int Lives => lives < 0 ? maxLives : lives;
     public bool IsAlive => Lives > 0;
+    /// <summary>Hits don't cost lives (e.g. the frozen Evil during the Angel's head start).</summary>
+    public bool Invulnerable { get; set; }
 
     /// <summary>Raised whenever the number of lives changes (also on reset).</summary>
     public event Action<PlayerLives> Changed;
@@ -39,7 +41,7 @@ public class PlayerLives : MonoBehaviour
     /// <summary>Takes a life unless the player is out of lives or still in the grace period. Returns true if one was lost.</summary>
     public bool LoseLife(float now)
     {
-        if (!IsAlive || now - lastHit < graceTime) return false;
+        if (Invulnerable || !IsAlive || now - lastHit < graceTime) return false;
         lastHit = now;
         lives = Lives - 1;
         Changed?.Invoke(this);

@@ -71,13 +71,20 @@ public static class EnvMeshKit
     // ------------------------------------------------------------------ stone block
 
     /// <summary>Grid coordinates along one axis of a rounded block: dense across the rounded edges.</summary>
-    static List<float> AxisSteps(float h, float r, float interiorStep)
+    /// <summary>Multiplies the interior grid step of every block: bigger = fewer vertices on big faces (1 = full detail).</summary>
+    public static float Coarseness = 1f;
+
+    /// <summary>Blocks added to these builders get a lighter rounded edge (small or flat pieces: paving, moss).</summary>
+    public static readonly HashSet<MeshBuilder> LowDetail = new HashSet<MeshBuilder>();
+
+    static List<float> AxisSteps(float h, float r, float interiorStep, bool low)
     {
-        var s = new List<float> { -h, -h + 0.29f * r, -h + 0.71f * r, -h + r };
+        var s = low ? new List<float> { -h, -h + 0.5f * r, -h + r } : new List<float> { -h, -h + 0.29f * r, -h + 0.71f * r, -h + r };
         float inner = 2f * (h - r);
         int cuts = Mathf.Max(0, Mathf.CeilToInt(inner / interiorStep) - 1);
         for (int i = 1; i <= cuts; i++) s.Add(-h + r + inner * i / (cuts + 1));
-        s.Add(h - r); s.Add(h - 0.71f * r); s.Add(h - 0.29f * r); s.Add(h);
+        if (low) { s.Add(h - r); s.Add(h - 0.5f * r); s.Add(h); }
+        else { s.Add(h - r); s.Add(h - 0.71f * r); s.Add(h - 0.29f * r); s.Add(h); }
         s.Sort();
         for (int i = s.Count - 1; i > 0; i--) if (s[i] - s[i - 1] < 1e-4f) s.RemoveAt(i);
         return s;
@@ -96,8 +103,9 @@ public static class EnvMeshKit
         r = Mathf.Min(r, Mathf.Min(Mathf.Min(h.x, h.y), h.z) * 0.95f);
         var inner = h - Vector3.one * r;
         float minSize = Mathf.Min(Mathf.Min(size.x, size.y), size.z);
-        float step = Mathf.Max(2.5f, minSize * 0.45f);
-        var xs = AxisSteps(h.x, r, step); var ys = AxisSteps(h.y, r, step); var zs = AxisSteps(h.z, r, step);
+        float step = Mathf.Max(2.5f, minSize * 0.45f) * Mathf.Max(1f, Coarseness);
+        bool low = LowDetail.Contains(mb);
+        var xs = AxisSteps(h.x, r, step, low); var ys = AxisSteps(h.y, r, step, low); var zs = AxisSteps(h.z, r, step, low);
         float noiseFreq = 1f / Mathf.Max(3f, minSize * 0.9f);
         var offset = new Vector3(seed * 3.17f, seed * 1.71f, seed * 2.33f);
 

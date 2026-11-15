@@ -4,8 +4,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// The Angel's job: press E to put an offering down just behind her. A short cooldown and a cap on how many can be
-/// on the field keep it from being spammed. Offerings never go through walls.
+/// The Angel's pouch of offerings: she starts a round carrying <see cref="pouchSize"/> and must hide them all, one by
+/// one (E / A / right-click puts one down just behind her). A short cooldown stops spamming, offerings never go
+/// through walls, and once down she can't pick them back up.
 /// </summary>
 [DisallowMultipleComponent]
 public class AngelDropper : MonoBehaviour
@@ -14,19 +15,24 @@ public class AngelDropper : MonoBehaviour
     [Tooltip("Parent for dropped offerings (empty = scene root).")]
     public Transform container;
     [SerializeField] Key dropKey = Key.E;
-    [Tooltip("Max offerings on the field at once.")]
-    public int maxActive = 8;
+    [Tooltip("Offerings she carries at the start of a round.")]
+    public int pouchSize = 8;
     [Tooltip("Seconds between drops.")]
     public float cooldown = 1.2f;
     [Tooltip("How far behind the Angel the offering lands.")]
     [SerializeField] float dropBehind = 10f;
 
-    readonly List<Offering> active = new List<Offering>();
+    readonly List<Offering> placed = new List<Offering>();
     float nextDrop = float.NegativeInfinity;
+    int carried = -1;
 
-    public int ActiveCount
+    /// <summary>Offerings still in her pouch.</summary>
+    public int Carried => carried < 0 ? pouchSize : carried;
+
+    /// <summary>Offerings she has put down that the Evil hasn't eaten yet.</summary>
+    public int PlacedCount
     {
-        get { active.RemoveAll(o => o == null || o.Done); return active.Count; }
+        get { placed.RemoveAll(o => o == null || o.Done); return placed.Count; }
     }
 
     public float CooldownLeft => Mathf.Max(0f, nextDrop - Time.time);
@@ -34,6 +40,14 @@ public class AngelDropper : MonoBehaviour
 
     /// <summary>Raised for every offering put down.</summary>
     public event Action<Offering> Dropped;
+
+    /// <summary>Fills the pouch again (round start).</summary>
+    public void Refill()
+    {
+        carried = pouchSize;
+        placed.Clear();
+        nextDrop = float.NegativeInfinity;
+    }
 
     void Update()
     {
@@ -47,25 +61,26 @@ public class AngelDropper : MonoBehaviour
         if (kb != null && dropKey != Key.None && kb[dropKey].wasPressedThisFrame) TryDrop(Time.time);
     }
 
-    /// <summary>Puts an offering down if the cooldown is over and the cap isn't reached. Returns it, or null.</summary>
+    /// <summary>Hides an offering behind her if the cooldown is over and she still has one. Returns it, or null.</summary>
     public Offering TryDrop(float now)
     {
-        if (!offeringPrefab || now < nextDrop || ActiveCount >= maxActive) return null;
+        if (now < nextDrop || !offeringPrefab || Carried <= 0) return null;
+        float behind = dropBehind;
 
         var from = transform.position; from.y = 0f;
         var back = -transform.forward; back.y = 0f;
         back = back.sqrMagnitude > 1e-4f ? back.normalized : Vector3.back;
-        var pos = from + back * dropBehind;
+        var pos = from + back * behind;
         // don't put it inside a wall: stop short of whatever is behind her
-        if (Physics.Raycast(from + Vector3.up * 10f, back, out var hit, dropBehind + 4f, ~0, QueryTriggerInteraction.Ignore) && !hit.collider.GetComponentInParent<CharacterActionsBase>())
+        if (Physics.Raycast(from + Vector3.up * 10f, back, out var hit, behind + 4f, ~0, QueryTriggerInteraction.Ignore) && !hit.collider.GetComponentInParent<CharacterActionsBase>())
             pos = from + back * Mathf.Max(0f, hit.distance - 6f);
 
         var o = container ? Instantiate(offeringPrefab, pos, Quaternion.identity, container) : Instantiate(offeringPrefab, pos, Quaternion.identity);
         o.gameObject.SetActive(true);
-        active.Add(o);
+        placed.Add(o);
+        carried = Carried - 1;
         nextDrop = now + cooldown;
-        var glow = GetComponent<AngelGlow>();
-        if (glow) glow.Flare();
+        if (TryGetComponent<AngelGlow>(out var glow)) glow.Flare();
         Dropped?.Invoke(o);
         return o;
     }
